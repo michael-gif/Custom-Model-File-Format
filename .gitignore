@@ -396,3 +396,14 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Test files
+*.fbx
+*.m
+*.rmodel
+
+# Visual Studio fairy ass bullshit files
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user

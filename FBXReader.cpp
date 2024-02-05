@@ -44,7 +44,7 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
     FbxIOSettings* ioSettings = FbxIOSettings::Create(manager, IOSROOT);
     manager->SetIOSettings(ioSettings);
     FbxImporter* importer = FbxImporter::Create(manager, "");
-    auto readStart = Timer::begin();
+    auto loadStart = Timer::begin();
     if (!importer->Initialize(path, -1, manager->GetIOSettings())) {
         std::cout << "Could not initialize fbx file" << std::endl;
         importer->Destroy();
@@ -74,6 +74,9 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
         return false;
     }
 
+    Timer::end(loadStart, "[FBX] Loaded model: ");
+
+    auto convertStart = Timer::begin();
     readFBXVertices(mesh, outMesh);
     readFBXTriangles(mesh, outMesh);
     readFBXUVs(mesh, outMesh);
@@ -83,7 +86,7 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
     manager->Destroy();
 
     std::flush(std::cout);
-    Timer::end(readStart, "[FBX] Read model: ");
+    Timer::end(convertStart, "[FBX] Converted model: ");
     return true;
 }
 

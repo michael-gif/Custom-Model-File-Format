@@ -213,9 +213,9 @@ void ModelManager::writeVertices(MeshObject* mesh, std::ofstream& file)
         file.write(reinterpret_cast<const char*>(&mesh->vertices[i].y), 4);
         file.write(reinterpret_cast<const char*>(&mesh->vertices[i].z), 4);
     }
-#if _DEBUG
     int numBytes = 2 + (numVertices * 12);
     mesh->sizeondisk += numBytes;
+#if _DEBUG
     Timer::end(start, "Wrote (" + std::to_string(mesh->vertices.size()) + ") vertices (" + std::to_string(numBytes) + " bytes): ");
 #endif
 }
@@ -243,8 +243,8 @@ void ModelManager::writeTriangleStrips(MeshObject* mesh, std::ofstream& file)
             file.write(reinterpret_cast<const char*>(&strip[j]), 2);
         }
     }
-#if _DEBUG
     mesh->sizeondisk += numBytes;
+#if _DEBUG
     Timer::end(start, "Wrote (" + std::to_string(mesh->triangleStrips.size()) + ") triangle strips (" + std::to_string(numBytes) + " bytes): ");
 #endif
 }
@@ -265,8 +265,8 @@ void ModelManager::writeUVs(MeshObject* mesh, std::ofstream& file)
         uint16_t uvInt = static_cast<uint16_t>(mesh->uvs[i] * 10000);
         file.write(reinterpret_cast<const char*>(&uvInt), 2);
     }
-#if _DEBUG
     mesh->sizeondisk += numUVs * 2;
+#if _DEBUG
     Timer::end(start, "Wrote (" + std::to_string(numUVs) + ") uv coords (" + std::to_string(numUVs * 2) + " bytes): ");
 #endif
 }
@@ -294,8 +294,8 @@ void ModelManager::writeNormals(MeshObject* mesh, std::ofstream& file)
             file.write(reinterpret_cast<const char*>(&normal), 4);
         }
     }
-#if _DEBUG
     mesh->sizeondisk += numBytes;
+#if _DEBUG
     Timer::end(start, "Wrote (" + std::to_string(mesh->triangleStrips.size()) + ") normal strips (" + std::to_string(numBytes) + " bytes): ");
 #endif
 }

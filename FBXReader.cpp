@@ -4,6 +4,7 @@
 #include <fbxsdk.h>
 #include <Timer.hpp>
 #include <string>
+#include <chrono>
 
 /// <summary>
 /// Read an FBX file
@@ -75,6 +76,7 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
 
     readFBXVertices(mesh, outMesh);
     readFBXTriangles(mesh, outMesh);
+    readFBXUVs(mesh, outMesh);
 
     scene->Destroy();
     ioSettings->Destroy();
@@ -117,23 +119,22 @@ void FBXReader::readFBXVertices(FbxMesh* mesh, MeshObject* outMesh)
 /// <param name="b"></param>
 /// <param name="c"></param>
 /// <returns></returns>
-int isAdjacentFront(int x, int y, int z, int a, int b, int c) {
+int isAdjacentFront(int y, int z, int a, int b, int c) {
 
-    int numAdjacent = 0;
     bool b1 = false;
     bool b2 = false;
     bool b3 = false;
     if (y == a) {
-        numAdjacent++;
         b1 = true;
     }
     else if (y == b) {
-        numAdjacent++;
         b2 = true;
     }
     else if (y == c) {
-        numAdjacent++;
         b3 = true;
+    }
+    else {
+        return 0;
     }
 
     /*
@@ -141,25 +142,23 @@ int isAdjacentFront(int x, int y, int z, int a, int b, int c) {
     * Example: If the y equals the a, then we don't need to check if the z equals the a, so skip it.
     */
     if (!b1 && z == a) {
-        numAdjacent++;
         b1 = true;
     }
     else if (!b2 && z == b) {
-        numAdjacent++;
         b2 = true;
     }
     else if (!b3 && z == c) {
-        numAdjacent++;
         b3 = true;
     }
-    if (numAdjacent == 2) {
-        // when 2 indices are equal, the flag for the second index is set to true.
-        // if 2 pair of indices are found, then the triangles share an edge and are therefore adjacent.
-        // so return the flag that isn't true, and return the corresponding index from the second triangle.
-        if (!b1) return a;
-        if (!b2) return b;
-        if (!b3) return c;
+    else {
+        return 0;
     }
+    // when 2 indices are equal, the flag for the second index is set to true.
+    // if 2 pair of indices are found, then the triangles share an edge and are therefore adjacent.
+    // so return the flag that isn't true, and return the corresponding index from the second triangle.
+    if (!b1) return a;
+    if (!b2) return b;
+    if (!b3) return c;
 
     return 0;
 }
@@ -176,42 +175,39 @@ int isAdjacentFront(int x, int y, int z, int a, int b, int c) {
 /// <param name="b"></param>
 /// <param name="c"></param>
 /// <returns></returns>
-int isAdjacentBehind(int x, int y, int z, int a, int b, int c) {
+int isAdjacentBehind(int x, int y, int a, int b, int c) {
 
-    int numAdjacent = 0;
     bool b1 = false;
     bool b2 = false;
     bool b3 = false;
     if (x == a) {
-        numAdjacent++;
         b1 = true;
     }
     else if (x == b) {
-        numAdjacent++;
         b2 = true;
     }
     else if (x == c) {
-        numAdjacent++;
         b3 = true;
+    }
+    else {
+        return 0;
     }
 
     if (!b1 && y == a) {
-        numAdjacent++;
         b1 = true;
     }
     else if (!b2 && y == b) {
-        numAdjacent++;
         b2 = true;
     }
     else if (!b3 && y == c) {
-        numAdjacent++;
         b3 = true;
     }
-    if (numAdjacent == 2) {
-        if (!b1) return a;
-        if (!b2) return b;
-        if (!b3) return c;
+    else {
+        return 0;
     }
+    if (!b1) return a;
+    if (!b2) return b;
+    if (!b3) return c;
 
     return 0;
 }
@@ -227,102 +223,128 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
     auto start = Timer::begin();
 #endif
     int polygonCount = mesh->GetPolygonCount();
-    std::vector<int> indices;
+    std::vector<int> triangles;
     for (int i = 0; i < mesh->GetPolygonCount(); ++i) {
-        indices.emplace_back(i);
+        triangles.emplace_back(i);
     }
     std::vector<int> singleTriStrip;
-    std::vector<float> singleUVStrip;
     int sizeondisk = 0;
-    FbxStringList uvSetNames;
-    mesh->GetUVSetNames(uvSetNames);
-    FbxVector2 uvCoord;
     bool unmapped;
+    int* vertices = mesh->GetPolygonVertices();
 
+    std::cout << "0";
+    float previousCompletion = 0;
+    float completion = 0;
+    long long duration = 0;
     while (true) {
-        int front1 = mesh->GetPolygonVertex(indices[0], 0);
-        int front2 = mesh->GetPolygonVertex(indices[0], 1);
-        int front3 = mesh->GetPolygonVertex(indices[0], 2);
-        int back1 = front1;
-        int back2 = front2;
-        int back3 = front3;
-        singleTriStrip.emplace_back(front1);
-        singleTriStrip.emplace_back(front2);
-        singleTriStrip.emplace_back(front3);
-        mesh->GetPolygonVertexUV(indices[0], 0, uvSetNames[0], uvCoord, unmapped);
-        singleUVStrip.emplace_back(uvCoord[0]);
-        singleUVStrip.emplace_back(uvCoord[1]);
-        mesh->GetPolygonVertexUV(indices[0], 1, uvSetNames[0], uvCoord, unmapped);
-        singleUVStrip.emplace_back(uvCoord[0]);
-        singleUVStrip.emplace_back(uvCoord[1]);
-        mesh->GetPolygonVertexUV(indices[0], 2, uvSetNames[0], uvCoord, unmapped);
-        singleUVStrip.emplace_back(uvCoord[0]);
-        singleUVStrip.emplace_back(uvCoord[1]);
+        int firstTriangleIndex = triangles[0];
+        int firstStartIndex = mesh->GetPolygonVertexIndex(firstTriangleIndex);
+        int frontX = vertices[firstStartIndex];
+        int frontY = vertices[firstStartIndex + 1];
+        int frontZ = vertices[firstStartIndex + 2];
+        int backX = frontX;
+        int backY = frontY;
+        singleTriStrip.emplace_back(frontX);
+        singleTriStrip.emplace_back(frontY);
+        singleTriStrip.emplace_back(frontZ);
+
+        int numTriangles = triangles.size();
         while (true) {
             int adjacentTris = 0;
-            for (int i = 1; i < indices.size(); ++i) {
-                int polygonIndex = indices[i];
+            for (int i = 1; i < numTriangles; ++i) {
+                int polygonIndex = triangles[i];
                 int startIndex = mesh->GetPolygonVertexIndex(polygonIndex);
-                int* vertices = mesh->GetPolygonVertices();
                 int p1 = vertices[startIndex + 0];
                 int p2 = vertices[startIndex + 1];
                 int p3 = vertices[startIndex + 2];
 
-                int adjacentFront = isAdjacentFront(front1, front2, front3, p1, p2, p3);
+                int adjacentFront = isAdjacentFront(frontY, frontZ, p1, p2, p3);
                 if (adjacentFront) {
-                    front1 = front2;
-                    front2 = front3;
-                    front3 = adjacentFront;
+                    frontY = frontZ;
+                    frontZ = adjacentFront;
                     singleTriStrip.emplace_back(adjacentFront);
-                    mesh->GetPolygonVertexUV(polygonIndex, 0, uvSetNames[0], uvCoord, unmapped);
-                    singleUVStrip.emplace_back(uvCoord[0]);
-                    singleUVStrip.emplace_back(uvCoord[1]);
-                    indices[i] = -1; // mark triangle for erasure
-                    adjacentTris++;
+                    ++adjacentTris;
+
+                    // erase triangle index from vector.
+                    triangles.erase(triangles.begin() + i);
+                    --i; // i gets incremented every iteration, so shift it back one to prevent the next element being skipped
+                    --numTriangles; // loop end is dynamic, so adjust it accordingly
                     continue;
                 }
-                int adjacentBehind = isAdjacentBehind(back1, back2, back3, p1, p2, p3);
+                int adjacentBehind = isAdjacentBehind(backX, backY, p1, p2, p3);
                 if (adjacentBehind) {
-                    back3 = back2;
-                    back2 = back1;
-                    back1 = adjacentBehind;
+                    backY = backX;
+                    backX = adjacentBehind;
                     singleTriStrip.insert(singleTriStrip.begin(), adjacentBehind);
-                    mesh->GetPolygonVertexUV(polygonIndex, 0, uvSetNames[0], uvCoord, unmapped);
-                    singleUVStrip.insert(singleUVStrip.begin(), uvCoord[1]);
-                    singleUVStrip.insert(singleUVStrip.begin(), uvCoord[0]);
-                    indices[i] = -1; // mark triangle for erasure
-                    adjacentTris++;
+                    ++adjacentTris;
+
+                    // erase triangle index from vector.
+                    triangles.erase(triangles.begin() + i);
+                    --i; // i gets incremented every iteration, so shift it back one to prevent the next element being skipped
+                    --numTriangles; // loop end is dynamic, so adjust it accordingly
                 }
             }
             if (!adjacentTris) break; // if no adjacent triangles were found, the strip has ended.
-
-            // erase any triangles that were put into a strip
-            int indicesSize = indices.size();
-            for (int i = 0; i < indicesSize; ++i) {
-                if (indices[i] == -1) {
-                    indices.erase(indices.begin() + i);
-                    i--;
-                }
-                indicesSize = indices.size();
-            }
         }
-        indices.erase(indices.begin()); // the first triangle was never removed during the loop, so remove it now.
+        triangles.erase(triangles.begin()); // the first triangle was never removed during the loop, so remove it now.
 #if _DEBUG
         sizeondisk += 2 + (singleTriStrip.size() * 2); // statistics
-        sizeondisk += 2 + (singleUVStrip.size() * 2);
 #endif
         outMesh->triangleStrips.emplace_back(singleTriStrip);
-        outMesh->uvStrips.emplace_back(singleUVStrip);
         singleTriStrip.clear();
-        singleUVStrip.clear();
-        if (indices.empty()) break; // no more triangles mean we have created all the strips needed.
+
+        // progress bar
+        completion = (1 - ((float)triangles.size() / (float)polygonCount)) * 40; // value between 1 and 40
+        int rounded = static_cast<int>(completion);
+        int diff = rounded - previousCompletion;
+        if (diff) {
+            if (rounded % 4 == 0)
+                std::cout << (previousCompletion + 1) / 4;
+            else
+                std::cout << ".";
+            previousCompletion = rounded;
+        }
+
+        if (triangles.empty()) break; // no more triangles mean we have created all the strips needed.
     }
+    std::cout << std::endl;
 #if _DEBUG
-    std::cout << "Triangle Strips: " << outMesh->triangleStrips.size() << "\n";
-    std::cout << "UV Strips: " << outMesh->uvStrips.size() << "\n";
+    std::cout << "Triangle strips: " << outMesh->triangleStrips.size() << "\n";
     std::cout << "Size on disk before: " << polygonCount * 18 << " bytes\n";
     std::cout << "Size on disk after: " << sizeondisk << " bytes\n";
     std::cout << "Saving: " << (1 - ((float)sizeondisk / (float)(polygonCount * 18))) * 100 << "%" << std::endl;
-    Timer::end(start, "Read (" + std::to_string(polygonCount) + ") triangles and uv's: ");
+    Timer::end(start, "Read (" + std::to_string(polygonCount) + ") triangles: ");
+#endif
+}
+
+/// <summary>
+/// Read uv coords for each triangle.
+/// </summary>
+/// <param name="mesh"></param>
+/// <param name="outMesh"></param>
+void FBXReader::readFBXUVs(FbxMesh* mesh, MeshObject* outMesh)
+{
+#if _DEBUG
+    auto start = Timer::begin();
+#endif
+    FbxStringList uvSetNames;
+    mesh->GetUVSetNames(uvSetNames);
+    FbxString uvMapName = uvSetNames[0];
+    FbxVector2 uvCoord;
+    bool unmapped;
+    int* vertices = mesh->GetPolygonVertices();
+    for (int i = 0; i < mesh->GetPolygonCount(); ++i) {
+        mesh->GetPolygonVertexUV(i, 0, uvMapName, uvCoord, unmapped);
+        outMesh->uvs.emplace_back(uvCoord[0]);
+        outMesh->uvs.emplace_back(uvCoord[1]);
+        mesh->GetPolygonVertexUV(i, 1, uvMapName, uvCoord, unmapped);
+        outMesh->uvs.emplace_back(uvCoord[0]);
+        outMesh->uvs.emplace_back(uvCoord[1]);
+        mesh->GetPolygonVertexUV(i, 2, uvMapName, uvCoord, unmapped);
+        outMesh->uvs.emplace_back(uvCoord[0]);
+        outMesh->uvs.emplace_back(uvCoord[1]);
+    }
+#if _DEBUG
+    Timer::end(start, "Read (" + std::to_string(outMesh->uvs.size()) + ") uv's: ");
 #endif
 }

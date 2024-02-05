@@ -16,19 +16,30 @@ void ModelManager::compare(MeshObject* meshA, MeshObject* meshB) {
     int meshBTriStrips = meshB->triangleStrips.size();
     std::cout << meshATriStrips << "/" << meshBTriStrips << " triangle strips\n";
     if (meshATriStrips != meshBTriStrips) return;
+    int numIndices = 0;
+    int numCorrect = 0;
     for (int i = 0; i < meshBTriStrips; i++) {
-        std::cout << meshA->triangleStrips[i].size() << "/" << meshB->triangleStrips[i].size() << "\n";
+        std::cout << "[STRIP-" << i << "] " << meshA->triangleStrips[i].size() << "/" << meshB->triangleStrips[i].size() << " indices\n";
     }
+    for (int i = 0; i < meshBTriStrips; i++) {
+        for (int j = 0; j < meshB->triangleStrips[i].size(); j++) {
+            numIndices++;
+            if (meshA->triangleStrips[i][j] == meshB->triangleStrips[i][j]) numCorrect++;
+        }
+    }
+    std::cout << "Triangle strips are " << ((float)numCorrect / (float)numIndices) * 100 << "% accurate" << std::endl;
 
     // compare uv strips
-    int meshAUVStrips = meshA->uvStrips.size();
-    int meshBUVStrips = meshB->uvStrips.size();
-    std::cout << meshAUVStrips << "/" << meshBUVStrips << " uv strips\n";
-    if (meshATriStrips != meshBUVStrips) return;
-    for (int i = 0; i < meshAUVStrips; i++) {
-        std::cout << meshA->uvStrips[i].size() << "/" << meshB->uvStrips[i].size() << "\n";
+    int uvsA = meshA->uvs.size();
+    int uvsB = meshB->uvs.size();
+    std::cout << uvsA << "/" << uvsB << " uv strips\n";
+    if (uvsA != uvsB) return;
+    numCorrect = 0;
+    for (int i = 0; i < uvsA; i++) {
+        float b = (float)static_cast<uint16_t>(meshB->uvs[i] * 10000) / 10000;
+        if (meshA->uvs[i] == b) numCorrect++;
     }
-    std::cout << std::endl;
+    std::cout << "UV coords are " << ((float)numCorrect / (float)uvsA) * 100 << "% accurate" << std::endl;
 }
 
 /// <summary>
@@ -45,7 +56,7 @@ void ModelManager::readModel(const char* path, MeshObject* outMesh)
     std::ifstream file(path, std::ios::binary);
     readVertices(file, outMesh);
     readTriangleStrips(file, outMesh);
-    readUVCoordStrips(file, outMesh);
+    readUVs(file, outMesh);
     readNormals(file, outMesh);
     file.close();
     Timer::end(start, "[MODELMAKER] Read model: ");
@@ -113,28 +124,22 @@ void ModelManager::readTriangleStrips(std::ifstream& file, MeshObject* mesh)
 /// </summary>
 /// <param name="file"></param>
 /// <param name="outCoords"></param>
-void ModelManager::readUVCoordStrips(std::ifstream& file, MeshObject* mesh)
+void ModelManager::readUVs(std::ifstream& file, MeshObject* mesh)
 {
 #if _DEBUG
     auto start = Timer::begin();
 #endif
     char metadataBuffer[2];
     file.read(metadataBuffer, sizeof(metadataBuffer));
-    uint16_t numUVStrips = *reinterpret_cast<uint16_t*>(&metadataBuffer);
-    for (int i = 0; i < numUVStrips; ++i) {
-        mesh->uvStrips.emplace_back();
-        char stripSizeBuffer[2];
-        file.read(stripSizeBuffer, sizeof(stripSizeBuffer));
-        uint16_t stripSize = *reinterpret_cast<uint16_t*>(&stripSizeBuffer);
-        for (int j = 0; j < stripSize; ++j) {
-            char uvCoordBuffer[2];
-            file.read(uvCoordBuffer, 2);
-            uint16_t uvcomponent = *reinterpret_cast<uint16_t*>(&uvCoordBuffer);
-            mesh->uvStrips[i].emplace_back(uvcomponent);
-        }
+    uint16_t numUVs = *reinterpret_cast<uint16_t*>(&metadataBuffer);
+    for (int i = 0; i < numUVs; ++i) {
+        char uvCoordBuffer[2];
+        file.read(uvCoordBuffer, 2);
+        uint16_t uvcomponent = *reinterpret_cast<uint16_t*>(&uvCoordBuffer);
+        mesh->uvs.emplace_back((float)uvcomponent / 10000);
     }
 #if _DEBUG
-    Timer::end(start, "Read (" + std::to_string(mesh->uvStrips.size()) + ") uv strips: ");
+    Timer::end(start, "Read (" + std::to_string(mesh->uvs.size()) + ") uvs: ");
 #endif
 }
 
@@ -179,7 +184,7 @@ void ModelManager::writeToDisk(MeshObject* mesh, std::string filename)
     std::ofstream modelFile(filename, std::ios::out | std::ios::binary);
     writeVertices(mesh, modelFile);
     writeTriangleStrips(mesh, modelFile);
-    writeUVCoordStrips(mesh, modelFile);
+    writeUVs(mesh, modelFile);
     writeNormals(mesh, modelFile);
     modelFile.close();
     Timer::end(start, "[MODELMAKER] Wrote model to disk (" + std::to_string(mesh->sizeondisk) + " bytes): ");
@@ -249,27 +254,20 @@ void ModelManager::writeTriangleStrips(MeshObject* mesh, std::ofstream& file)
 /// </summary>
 /// <param name="mesh"></param>
 /// <param name="file"></param>
-void ModelManager::writeUVCoordStrips(MeshObject* mesh, std::ofstream& file)
+void ModelManager::writeUVs(MeshObject* mesh, std::ofstream& file)
 {
 #if _DEBUG
     auto start = Timer::begin();
 #endif
-    int numUVStrips = mesh->uvStrips.size();
-    file.write(reinterpret_cast<const char*>(&numUVStrips), 2);
-    int numBytes = 0;
-    for (int i = 0; i < numUVStrips; ++i) {
-        std::vector<float> strip = mesh->uvStrips[i];
-        int stripSize = strip.size();
-        numBytes += 2 + (stripSize * 2);
-        file.write(reinterpret_cast<const char*>(&stripSize), 2);
-        for (int j = 0; j < stripSize; ++j) {
-            uint16_t coord = static_cast<uint16_t>(strip[j] * 10000);
-            file.write(reinterpret_cast<const char*>(&coord), 2);
-        }
+    uint16_t numUVs = mesh->uvs.size();
+    file.write(reinterpret_cast<const char*>(&numUVs), 2);
+    for (int i = 0; i < numUVs; ++i) {
+        uint16_t uvInt = static_cast<uint16_t>(mesh->uvs[i] * 10000);
+        file.write(reinterpret_cast<const char*>(&uvInt), 2);
     }
 #if _DEBUG
-    mesh->sizeondisk += numBytes;
-    Timer::end(start, "Wrote (" + std::to_string(mesh->uvStrips.size()) + ") uv coords (" + std::to_string(numBytes) + " bytes): ");
+    mesh->sizeondisk += numUVs * 2;
+    Timer::end(start, "Wrote (" + std::to_string(numUVs) + ") uv coords (" + std::to_string(numUVs * 2) + " bytes): ");
 #endif
 }
 

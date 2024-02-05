@@ -11,6 +11,7 @@ public:
 	static bool readFBXModel(const char* path, MeshObject* outMesh);
 	static void readFBXVertices(FbxMesh* mesh, MeshObject* outMesh);
 	static void readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh);
+	static void readFBXUVs(FbxMesh* mesh, MeshObject* outMesh);
 };
 
 #endif

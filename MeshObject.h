@@ -57,7 +57,7 @@ public:
 
     std::vector<Vertex> vertices;
     std::vector<std::vector<int>> triangleStrips;
-    std::vector<std::vector<float>> uvStrips;
+    std::vector<float> uvs;
     std::vector<std::vector<float>> normalStrips;
 };
 

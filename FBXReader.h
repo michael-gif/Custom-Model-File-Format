@@ -1,6 +1,6 @@
 #pragma once
-#ifndef FBX_READER_HPP
-#define FBX_READER_HPP
+#ifndef FBXREADER_H_
+#define FBXREADER_H_
 
 #include <vector>
 #include <fbxsdk.h>
@@ -8,8 +8,7 @@
 
 class FBXReader {
 public:
-	static MeshObject loadedFBXMesh;
-	static MeshObject* readFBXModel(const char* path);
+	static bool readFBXModel(const char* path, MeshObject* outMesh);
 	static void readFBXVertices(FbxMesh* mesh, MeshObject* outMesh);
 	static void readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh);
 };

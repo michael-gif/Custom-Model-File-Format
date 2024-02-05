@@ -10,9 +10,7 @@
 
 class ModelManager {
 public:
-	static MeshObject loadedCustomMesh;
-
-	static MeshObject* readModel(const char* path);
+	static void readModel(const char* path, MeshObject* outMesh);
 	static void writeToDisk(MeshObject* mesh, std::string filename);
 	static void compare(MeshObject* meshA, MeshObject* meshB);
 private:

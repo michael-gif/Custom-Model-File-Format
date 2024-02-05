@@ -1,6 +1,6 @@
 #pragma once
-#ifndef MESH_OBJECT_HPP
-#define MESH_OBJECT_HPP
+#ifndef MESHOBJECT_H_
+#define MESHOBJECT_H_
 
 #include <iostream>
 #include <vector>

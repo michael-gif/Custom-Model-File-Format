@@ -18,9 +18,12 @@ int main(int argc, char* argv[])
 {
 #if _DEBUG
     auto start = Timer::begin();
-    MeshObject* fbxMesh = FBXReader::readFBXModel("head.fbx");
-    ModelManager::writeToDisk(fbxMesh, "head.m");
-    MeshObject* readMesh = ModelManager::readModel("head.m");
+    MeshObject fbxMesh;
+    if (FBXReader::readFBXModel("head.fbx", &fbxMesh)) {
+        ModelManager::writeToDisk(&fbxMesh, "head.m");
+        MeshObject readMesh;
+        ModelManager::readModel("head.m", &readMesh);
+    }
 
     Timer::end(start, "Program completed in: ");
 #else
@@ -28,9 +31,12 @@ int main(int argc, char* argv[])
         std::cout << "syntax: modelmaker <inputfile.fbx> <outputfile.whateverextension>";
         return 0;
     }
-    MeshObject* fbxMesh = FBXReader::readFBXModel(argv[1]);
-    ModelManager::writeToDisk(fbxMesh, argv[2]);
-    MeshObject* readMesh = ModelManager::readModel(argv[2]);
+    MeshObject fbxMesh;
+    if (FBXReader::readFBXModel(argv[1], &fbxMesh)) {
+        ModelManager::writeToDisk(&fbxMesh, argv[2]);
+        MeshObject readMesh;
+        ModelManager::readModel(argv[2], &readMesh);
+    }
 #endif
     return 0;
 }

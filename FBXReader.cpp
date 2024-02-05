@@ -4,9 +4,6 @@
 #include <fbxsdk.h>
 #include <Timer.hpp>
 #include <string>
-#include <chrono>
-
-MeshObject FBXReader::loadedFBXMesh;
 
 /// <summary>
 /// Read an FBX file
@@ -16,19 +13,43 @@ MeshObject FBXReader::loadedFBXMesh;
 /// Reason is, each vertex position is stored as 2 bytes in a .m file, which reduces file size, so signed ints work best, as long as they are within 2 bytes.
 /// </summary>
 /// <param name="path"></param>
-/// <returns></returns>
-MeshObject* FBXReader::readFBXModel(const char* path)
+/// <returns>Read success</returns>
+bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
 {
 #if _DEBUG
     auto start = Timer::begin();
 #endif
+    if (path == nullptr) {
+        std::cout << "path is null" << std::endl;
+        return false;
+    }
+    std::string strPath(path);
+    size_t len = strPath.size();
+    if (len == 0) {
+        std::cout << "path is empty" << std::endl;
+        return false;
+    }
+    else if (len < 4) {
+        std::cout << "not an fbx file" << std::endl;
+        return false;
+    }
+    else if (len >= 4) {
+        if (strPath.substr(strPath.size() - 4) != ".fbx") {
+            std::cout << "file doesn't end with .fbx" << std::endl;
+            return false;
+        }
+    }
     FbxManager* manager = FbxManager::Create();
     FbxIOSettings* ioSettings = FbxIOSettings::Create(manager, IOSROOT);
     manager->SetIOSettings(ioSettings);
     FbxImporter* importer = FbxImporter::Create(manager, "");
     auto readStart = Timer::begin();
     if (!importer->Initialize(path, -1, manager->GetIOSettings())) {
-        std::cout << "Could not initialize fbx file\n";
+        std::cout << "Could not initialize fbx file" << std::endl;
+        importer->Destroy();
+        ioSettings->Destroy();
+        manager->Destroy();
+        return false;
     }
     FbxScene* scene = FbxScene::Create(manager, "MyScene");
     importer->Import(scene);
@@ -36,13 +57,11 @@ MeshObject* FBXReader::readFBXModel(const char* path)
     FbxNode* rootNode = scene->GetRootNode();
     if (!rootNode) {
         std::cout << "Couldn't get root node\n";
-        return 0;
+        return false;
     }
     FbxNode* node = rootNode->GetChild(0);
 #if _DEBUG
     Timer::end(start, "Initialized fbx scene: ");
-#endif
-#if _DEBUG
     std::cout << "[FBX] Detected object: '" << node->GetName() << "'" << std::endl;
 #endif
     FbxMesh* mesh = node->GetMesh();
@@ -51,18 +70,19 @@ MeshObject* FBXReader::readFBXModel(const char* path)
         scene->Destroy();
         ioSettings->Destroy();
         manager->Destroy();
-        return nullptr;
+        return false;
     }
 
-    readFBXVertices(mesh, &loadedFBXMesh);
-    readFBXTriangles(mesh, &loadedFBXMesh);
+    readFBXVertices(mesh, outMesh);
+    readFBXTriangles(mesh, outMesh);
 
     scene->Destroy();
     ioSettings->Destroy();
     manager->Destroy();
+
     std::flush(std::cout);
     Timer::end(readStart, "[FBX] Read model: ");
-    return &loadedFBXMesh;
+    return true;
 }
 
 /// <summary>
@@ -220,15 +240,15 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
     bool unmapped;
 
     while (true) {
-        int f1 = mesh->GetPolygonVertex(indices[0], 0);
-        int f2 = mesh->GetPolygonVertex(indices[0], 1);
-        int f3 = mesh->GetPolygonVertex(indices[0], 2);
-        int b1 = f1;
-        int b2 = f2;
-        int b3 = f3;
-        singleTriStrip.emplace_back(f1);
-        singleTriStrip.emplace_back(f2);
-        singleTriStrip.emplace_back(f3);
+        int front1 = mesh->GetPolygonVertex(indices[0], 0);
+        int front2 = mesh->GetPolygonVertex(indices[0], 1);
+        int front3 = mesh->GetPolygonVertex(indices[0], 2);
+        int back1 = front1;
+        int back2 = front2;
+        int back3 = front3;
+        singleTriStrip.emplace_back(front1);
+        singleTriStrip.emplace_back(front2);
+        singleTriStrip.emplace_back(front3);
         mesh->GetPolygonVertexUV(indices[0], 0, uvSetNames[0], uvCoord, unmapped);
         singleUVStrip.emplace_back(uvCoord[0]);
         singleUVStrip.emplace_back(uvCoord[1]);
@@ -248,11 +268,11 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
                 int p2 = vertices[startIndex + 1];
                 int p3 = vertices[startIndex + 2];
 
-                int adjacentFront = isAdjacentFront(f1, f2, f3, p1, p2, p3);
+                int adjacentFront = isAdjacentFront(front1, front2, front3, p1, p2, p3);
                 if (adjacentFront) {
-                    f1 = f2;
-                    f2 = f3;
-                    f3 = adjacentFront;
+                    front1 = front2;
+                    front2 = front3;
+                    front3 = adjacentFront;
                     singleTriStrip.emplace_back(adjacentFront);
                     mesh->GetPolygonVertexUV(polygonIndex, 0, uvSetNames[0], uvCoord, unmapped);
                     singleUVStrip.emplace_back(uvCoord[0]);
@@ -261,11 +281,11 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
                     adjacentTris++;
                     continue;
                 }
-                int adjacentBehind = isAdjacentBehind(b1, b2, b3, p1, p2, p3);
+                int adjacentBehind = isAdjacentBehind(back1, back2, back3, p1, p2, p3);
                 if (adjacentBehind) {
-                    b3 = b2;
-                    b2 = b1;
-                    b1 = adjacentBehind;
+                    back3 = back2;
+                    back2 = back1;
+                    back1 = adjacentBehind;
                     singleTriStrip.insert(singleTriStrip.begin(), adjacentBehind);
                     mesh->GetPolygonVertexUV(polygonIndex, 0, uvSetNames[0], uvCoord, unmapped);
                     singleUVStrip.insert(singleUVStrip.begin(), uvCoord[1]);
@@ -303,14 +323,6 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
     std::cout << "Size on disk before: " << polygonCount * 18 << " bytes\n";
     std::cout << "Size on disk after: " << sizeondisk << " bytes\n";
     std::cout << "Saving: " << (1 - ((float)sizeondisk / (float)(polygonCount * 18))) * 100 << "%" << std::endl;
-#endif
-    /*
-    * idea: loop through every triangle and build an insanely long triangle strip.
-    * save the indices for the strip, and that will reduce the indice count to 1/3 of the original.
-    * when reading, just use a sliding window to get the triangles back. very fast.
-    * you can also strippify the uv coords by using the triangle index to get the uv coord from fbx file
-    */
-#if _DEBUG
     Timer::end(start, "Read (" + std::to_string(polygonCount) + ") triangles and uv's: ");
 #endif
 }

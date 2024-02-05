@@ -31,29 +31,25 @@ void ModelManager::compare(MeshObject* meshA, MeshObject* meshB) {
     std::cout << std::endl;
 }
 
-MeshObject ModelManager::loadedCustomMesh;
-
 /// <summary>
 /// Read model file
 /// </summary>
 /// <param name="path"></param>
 /// <returns>Pointer to loaded mesh object</returns>
-MeshObject* ModelManager::readModel(const char* path)
+void ModelManager::readModel(const char* path, MeshObject* outMesh)
 {
     auto start = Timer::begin();
 #if _DEBUG
     Timer::end(start, "Created empty mesh: ");
 #endif
     std::ifstream file(path, std::ios::binary);
-    readVertices(file, &loadedCustomMesh);
-    readTriangleStrips(file, &loadedCustomMesh);
-    readUVCoordStrips(file, &loadedCustomMesh);
-    readNormals(file, &loadedCustomMesh);
+    readVertices(file, outMesh);
+    readTriangleStrips(file, outMesh);
+    readUVCoordStrips(file, outMesh);
+    readNormals(file, outMesh);
     file.close();
     Timer::end(start, "[MODELMAKER] Read model: ");
     std::flush(std::cout);
-    return &loadedCustomMesh;
-    return nullptr;
 }
 
 /// <summary>

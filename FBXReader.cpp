@@ -134,6 +134,7 @@ int isAdjacentFront(int y, int z, int a, int b, int c) {
         b3 = true;
     }
     else {
+        // If the y element isn't equal to a, b or c, then it is guaranteed that triangle a,b,c is not adjacent to x,y,z
         return 0;
     }
 
@@ -151,6 +152,7 @@ int isAdjacentFront(int y, int z, int a, int b, int c) {
         b3 = true;
     }
     else {
+        // If the z element isn't equal to a, b or c, then it is guaranteed that triangle a,b,c is not adjacent to x,y,z
         return 0;
     }
     // when 2 indices are equal, the flag for the second index is set to true.
@@ -190,6 +192,7 @@ int isAdjacentBehind(int x, int y, int a, int b, int c) {
         b3 = true;
     }
     else {
+        // If the x element isn't equal to a, b or c, then it is guaranteed that triangle a,b,c is not adjacent to x,y,z
         return 0;
     }
 
@@ -203,6 +206,7 @@ int isAdjacentBehind(int x, int y, int a, int b, int c) {
         b3 = true;
     }
     else {
+        // If the y element isn't equal to a, b or c, then it is guaranteed that triangle a,b,c is not adjacent to x,y,z
         return 0;
     }
     if (!b1) return a;
@@ -235,7 +239,6 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
     std::cout << "0";
     float previousCompletion = 0;
     float completion = 0;
-    long long duration = 0;
     while (true) {
         int firstTriangleIndex = triangles[0];
         int firstStartIndex = mesh->GetPolygonVertexIndex(firstTriangleIndex);

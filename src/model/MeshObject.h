@@ -55,9 +55,9 @@ public:
     };
 
     std::vector<Vertex> vertices;
-    std::vector<int> vertexIndices;
+    std::vector<uint16_t> vertexIndices;
     std::vector<uint32_t> edges;
-    std::vector<std::vector<int>> triangleStrips;
+    std::vector<std::vector<uint16_t>> triangleStrips;
     std::vector<float> uvs;
     std::vector<std::vector<float>> normalStrips;
 };

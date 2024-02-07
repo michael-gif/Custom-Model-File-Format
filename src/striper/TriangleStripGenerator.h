@@ -4,6 +4,7 @@
 #include <model/MeshObject.h>
 #include <fbxsdk.h>
 
-void striper(FbxMesh* inMesh, MeshObject* mesh);
+void striper(FbxMesh* inMesh, MeshObject* outMesh);
+void striperNew(FbxMesh* inMesh, MeshObject* outMesh);
 
 #endif

@@ -234,7 +234,7 @@ void ModelManager::writeTriangleStrips(MeshObject* mesh, std::ofstream& file)
     file.write(reinterpret_cast<const char*>(&numTriStrips), 2);
     int numBytes = 0;
     for (int i = 0; i < numTriStrips; ++i) {
-        std::vector<int> strip = mesh->triangleStrips[i];
+        std::vector<uint16_t> strip = mesh->triangleStrips[i];
         uint16_t stripSize = (uint16_t)strip.size();
         //std::cout << stripSize << std::endl;
         numBytes += 2 + (stripSize * 2);
@@ -286,7 +286,7 @@ void ModelManager::writeNormals(MeshObject* mesh, std::ofstream& file)
     int numBytes = 0;
     float normal = 6.9;
     for (int i = 0; i < numNormalStrips; ++i) {
-        std::vector<int> strip = mesh->triangleStrips[i];
+        std::vector<uint16_t> strip = mesh->triangleStrips[i];
         int stripSize = strip.size() - 2;
         numBytes += 2 + (stripSize * 4);
         file.write(reinterpret_cast<const char*>(&stripSize), 2);

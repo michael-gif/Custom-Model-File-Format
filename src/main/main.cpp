@@ -21,10 +21,10 @@ int main(int argc, char* argv[])
 #if _DEBUG
     auto start = Timer::begin();
     MeshObject fbxMesh;
-    if (FBXReader::readFBXModel("head.fbx", &fbxMesh)) {
-        ModelManager::writeToDisk(&fbxMesh, "head.m");
-        MeshObject readMesh;
-        ModelManager::readModel("head.m", &readMesh);
+    if (FBXReader::readFBXModel("icobig.fbx", &fbxMesh)) {
+        //ModelManager::writeToDisk(&fbxMesh, "icobig.m");
+        //MeshObject readMesh;
+        //ModelManager::readModel("icobig.m", &readMesh);
     }
 
     Timer::end(start, "Program completed in: ");

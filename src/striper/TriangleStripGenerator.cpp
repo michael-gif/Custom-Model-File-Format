@@ -212,18 +212,9 @@ void striper(FbxMesh* inMesh, MeshObject* outMesh) {
 }
 
 int ifSharesEdgeGetRemainingVertexIndex(uint32_t& currentEdge, uint32_t edgeA, uint32_t edgeB, uint32_t edgeC, int v1, int v2, int v3) {
-    if (currentEdge == edgeA) {
-        //currentEdge = edgeB;
-        return v3;
-    }
-    if (currentEdge == edgeB) {
-        //currentEdge = edgeC;
-        return v1;
-    }
-    if (currentEdge == edgeC) {
-        //currentEdge = edgeA;
-        return v2;
-    }
+    if (currentEdge == edgeA) return v3;
+    if (currentEdge == edgeB) return v1;
+    if (currentEdge == edgeC) return v2;
 	return -1;
 }
 

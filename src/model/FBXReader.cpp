@@ -134,7 +134,7 @@ void FBXReader::readTris(FbxMesh* mesh, MeshObject* outMesh) {
         if (vertex1 < vertex2)
             edge1 = (vertex1 << 16) | vertex2;
         else
-            edge1 = ((vertex2 << 16) | vertex1);
+            edge1 = (vertex2 << 16) | vertex1;
 
         if (vertex2 < vertex3)
             edge2 = (vertex2 << 16) | vertex3;

@@ -211,18 +211,27 @@ void striper(FbxMesh* inMesh, MeshObject* outMesh) {
 #endif
 }
 
-int ifSharesEdgeGetRemainingVertexIndex(uint32_t currentEdge, uint32_t edgeA, uint32_t edgeB, uint32_t edgeC, int v1, int v2, int v3) {
-	if (currentEdge == edgeA) return v3;
-	if (currentEdge == edgeB) return v1;
-	if (currentEdge == edgeC) return v2;
+int ifSharesEdgeGetRemainingVertexIndex(uint32_t& currentEdge, uint32_t edgeA, uint32_t edgeB, uint32_t edgeC, int v1, int v2, int v3) {
+    if (currentEdge == edgeA) {
+        //currentEdge = edgeB;
+        return v3;
+    }
+    if (currentEdge == edgeB) {
+        //currentEdge = edgeC;
+        return v1;
+    }
+    if (currentEdge == edgeC) {
+        //currentEdge = edgeA;
+        return v2;
+    }
 	return -1;
 }
 
 void striperNew(FbxMesh* inMesh, MeshObject* outMesh) {
     auto start = Timer::begin();
     int polygonCount = inMesh->GetPolygonCount();
-	std::vector<uint16_t> currentStrip(1);
-	std::vector<int> triangleIndices(outMesh->vertexIndices.size() / 3);
+	std::vector<uint16_t> currentStrip;
+	std::vector<int> triangleIndices(polygonCount);
 	std::iota(triangleIndices.begin(), triangleIndices.end(), 0);
     int sizeondisk = 0;
 
@@ -260,8 +269,8 @@ void striperNew(FbxMesh* inMesh, MeshObject* outMesh) {
                 int remainingIndex = ifSharesEdgeGetRemainingVertexIndex(frontEdge, edge1, edge2, edge3, v1, v2, v3);
 				if (remainingIndex != -1) {
 					foundTriangles = true;
+                    int secondLastIndex = currentStrip.back();
 					currentStrip.emplace_back((uint16_t)remainingIndex);
-					int secondLastIndex = currentStrip[currentStrip.size() - 2];
 					if (secondLastIndex < remainingIndex)
 						frontEdge = (secondLastIndex << 16) | remainingIndex;
 					else

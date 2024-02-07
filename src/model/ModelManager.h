@@ -2,7 +2,7 @@
 #ifndef MODEL_MANAGER_HPP
 #define MODEL_MANAGER_HPP
 
-#include <MeshObject.h>
+#include <model/MeshObject.h>
 #include <string>
 #include <fstream>
 #include <vector>

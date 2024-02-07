@@ -1,10 +1,12 @@
 #include <iostream>
-#include <FBXReader.h>
-#include <MeshObject.h>
+#include <model/FBXReader.h>
+#include <model/MeshObject.h>
 #include <fbxsdk.h>
-#include <Timer.hpp>
+#include <util/Timer.hpp>
 #include <string>
 #include <chrono>
+#include <striper/TriangleStripGenerator.h>
+#include <numeric>
 
 /// <summary>
 /// Read an FBX file
@@ -77,9 +79,10 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
     Timer::end(loadStart, "[FBX] Loaded model: ");
 
     auto convertStart = Timer::begin();
-    readFBXVertices(mesh, outMesh);
-    readFBXTriangles(mesh, outMesh);
-    readFBXUVs(mesh, outMesh);
+    //readFBXVertices(mesh, outMesh);
+    //readFBXTriangles(mesh, outMesh);
+    //readFBXUVs(mesh, outMesh);
+    readTris(mesh, outMesh);
 
     scene->Destroy();
     ioSettings->Destroy();
@@ -111,6 +114,41 @@ void FBXReader::readFBXVertices(FbxMesh* mesh, MeshObject* outMesh)
 #endif
 }
 
+void FBXReader::readTris(FbxMesh* mesh, MeshObject* outMesh) {
+    auto start = Timer::begin();
+    int polygonCount = mesh->GetPolygonCount();
+    int* vertices = mesh->GetPolygonVertices();
+    uint32_t edge1, edge2, edge3;
+    int vertex1, vertex2, vertex3;
+    for (int i = 0; i < polygonCount * 3; i += 3) {
+        vertex1 = vertices[i];
+        vertex2 = vertices[i + 1];
+        vertex3 = vertices[i + 2];
+        outMesh->vertexIndices.emplace_back(vertex1);
+        outMesh->vertexIndices.emplace_back(vertex2);
+        outMesh->vertexIndices.emplace_back(vertex3);
+        if (vertex1 < vertex2)
+            edge1 = (vertex1 << 16) | vertex2;
+        else
+            edge1 = (vertex2 << 16) | vertex1;
+
+        if (vertex2 < vertex3)
+            edge2 = (vertex2 << 16) | vertex3;
+        else
+            edge2 = (vertex3 << 16) | vertex2;
+
+        if (vertex3 < vertex1)
+            edge3 = (vertex3 << 16) | vertex1;
+        else
+            edge3 = (vertex1 << 16) | vertex3;
+        outMesh->edges.emplace_back(edge1);
+        outMesh->edges.emplace_back(edge2);
+        outMesh->edges.emplace_back(edge3);
+    }
+    Timer::end(start, "Read (" + std::to_string(polygonCount) + ") triangles: ");
+    striper(mesh, outMesh);
+}
+
 /// <summary>
 /// Compare 2 triangles, (x, y, z) and (a, b, c). If both triangles share 2 indices then they share an edge, and are considered adjacent.
 /// Return the index that the second triangle doesn't share. This will be used as the next vertex in the triangle strip.
@@ -138,7 +176,7 @@ int isAdjacentFront(int y, int z, int a, int b, int c) {
     }
     else {
         // If the y element isn't equal to a, b or c, then it is guaranteed that triangle a,b,c is not adjacent to x,y,z
-        return 0;
+        return -1;
     }
 
     /*
@@ -156,7 +194,7 @@ int isAdjacentFront(int y, int z, int a, int b, int c) {
     }
     else {
         // If the z element isn't equal to a, b or c, then it is guaranteed that triangle a,b,c is not adjacent to x,y,z
-        return 0;
+        return -1;
     }
     // when 2 indices are equal, the flag for the second index is set to true.
     // if 2 pair of indices are found, then the triangles share an edge and are therefore adjacent.
@@ -165,7 +203,7 @@ int isAdjacentFront(int y, int z, int a, int b, int c) {
     if (!b2) return b;
     if (!b3) return c;
 
-    return 0;
+    return -1;
 }
 
 /// <summary>
@@ -196,7 +234,7 @@ int isAdjacentBehind(int x, int y, int a, int b, int c) {
     }
     else {
         // If the x element isn't equal to a, b or c, then it is guaranteed that triangle a,b,c is not adjacent to x,y,z
-        return 0;
+        return -1;
     }
 
     if (!b1 && y == a) {
@@ -210,13 +248,13 @@ int isAdjacentBehind(int x, int y, int a, int b, int c) {
     }
     else {
         // If the y element isn't equal to a, b or c, then it is guaranteed that triangle a,b,c is not adjacent to x,y,z
-        return 0;
+        return -1;
     }
     if (!b1) return a;
     if (!b2) return b;
     if (!b3) return c;
 
-    return 0;
+    return -1;
 }
 
 /// <summary>
@@ -230,42 +268,45 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
     auto start = Timer::begin();
 #endif
     int polygonCount = mesh->GetPolygonCount();
-    std::vector<int> triangles;
-    for (int i = 0; i < mesh->GetPolygonCount(); ++i) {
-        triangles.emplace_back(i);
-    }
+    std::vector<int> triangles(mesh->GetPolygonCount());
+    std::iota(triangles.begin(), triangles.end(), 0);
     std::vector<int> singleTriStrip;
     int sizeondisk = 0;
     bool unmapped;
     int* vertices = mesh->GetPolygonVertices();
 
-    std::cout << "0";
+    // for progress bar
+    //std::cout << "0";
     float previousCompletion = 0;
     float completion = 0;
+
     while (true) {
         int firstTriangleIndex = triangles[0];
         int firstStartIndex = mesh->GetPolygonVertexIndex(firstTriangleIndex);
-        int frontX = vertices[firstStartIndex];
-        int frontY = vertices[firstStartIndex + 1];
-        int frontZ = vertices[firstStartIndex + 2];
+        int* firstVertexPointer = &vertices[firstStartIndex];
+        int frontX = *firstVertexPointer;
+        int frontY = *(firstVertexPointer + 1);
+        int frontZ = *(firstVertexPointer + 2);
         int backX = frontX;
         int backY = frontY;
         singleTriStrip.emplace_back(frontX);
         singleTriStrip.emplace_back(frontY);
         singleTriStrip.emplace_back(frontZ);
+        triangles.erase(triangles.begin());
 
         int numTriangles = triangles.size();
         while (true) {
             int adjacentTris = 0;
-            for (int i = 1; i < numTriangles; ++i) {
+            for (int i = 0; i < numTriangles; ++i) {
                 int polygonIndex = triangles[i];
                 int startIndex = mesh->GetPolygonVertexIndex(polygonIndex);
-                int p1 = vertices[startIndex + 0];
-                int p2 = vertices[startIndex + 1];
-                int p3 = vertices[startIndex + 2];
+                int* vertexPointer = &vertices[startIndex];
+                int p1 = *vertexPointer;
+                int p2 = *(vertexPointer + 1);
+                int p3 = *(vertexPointer + 2);
 
                 int adjacentFront = isAdjacentFront(frontY, frontZ, p1, p2, p3);
-                if (adjacentFront) {
+                if (adjacentFront != -1) {
                     frontY = frontZ;
                     frontZ = adjacentFront;
                     singleTriStrip.emplace_back(adjacentFront);
@@ -278,7 +319,7 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
                     continue;
                 }
                 int adjacentBehind = isAdjacentBehind(backX, backY, p1, p2, p3);
-                if (adjacentBehind) {
+                if (adjacentBehind != -1) {
                     backY = backX;
                     backX = adjacentBehind;
                     singleTriStrip.insert(singleTriStrip.begin(), adjacentBehind);
@@ -292,7 +333,8 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
             }
             if (!adjacentTris) break; // if no adjacent triangles were found, the strip has ended.
         }
-        triangles.erase(triangles.begin()); // the first triangle was never removed during the loop, so remove it now.
+        //std::cout << singleTriStrip[0] << " " << singleTriStrip[1] << " " << singleTriStrip[2] << " ";
+        //std::cout << singleTriStrip[singleTriStrip.size() - 1] << " " << singleTriStrip[singleTriStrip.size() - 2] << " " << singleTriStrip[singleTriStrip.size() - 3] << std::endl;
 #if _DEBUG
         sizeondisk += 2 + (singleTriStrip.size() * 2); // statistics
 #endif
@@ -300,16 +342,16 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
         singleTriStrip.clear();
 
         // progress bar
-        completion = (1 - ((float)triangles.size() / (float)polygonCount)) * 40; // value between 1 and 40
-        int rounded = static_cast<int>(completion);
-        int diff = rounded - previousCompletion;
-        if (diff) {
-            if (rounded % 4 == 0)
-                std::cout << (previousCompletion + 1) / 4;
-            else
-                std::cout << ".";
-            previousCompletion = rounded;
-        }
+        //completion = (1 - ((float)triangles.size() / (float)polygonCount)) * 40; // value between 1 and 40
+        //int rounded = static_cast<int>(completion);
+        //int diff = rounded - previousCompletion;
+        //if (diff) {
+        //    if (rounded % 4 == 0)
+        //        std::cout << (previousCompletion + 1) / 4;
+        //    else
+        //        std::cout << ".";
+        //    previousCompletion = rounded;
+        //}
 
         if (triangles.empty()) break; // no more triangles mean we have created all the strips needed.
     }

@@ -1,14 +1,14 @@
 #include <string>
 #include <vector>
 #include <fstream>
-#include <ModelManager.h>
-#include <MeshObject.h>
+#include <model/ModelManager.h>
+#include <model/MeshObject.h>
 #include <chrono>
 #include <iostream>
-#include <Timer.hpp>
+#include <util/Timer.hpp>
 #include <fbxsdk.h>
 #include <iomanip>
-#include <FBXReader.h>
+#include <model/FBXReader.h>
 
 void ModelManager::compare(MeshObject* meshA, MeshObject* meshB) {
     // compare triangle strips

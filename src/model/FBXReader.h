@@ -1,10 +1,9 @@
-#pragma once
-#ifndef FBXREADER_H_
-#define FBXREADER_H_
+#ifndef SRC_MODEL_FBXREADER_H_
+#define SRC_MODEL_FBXREADER_H_
 
 #include <vector>
 #include <fbxsdk.h>
-#include <MeshObject.h>
+#include <model/MeshObject.h>
 
 class FBXReader {
 public:
@@ -12,6 +11,8 @@ public:
 	static void readFBXVertices(FbxMesh* mesh, MeshObject* outMesh);
 	static void readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh);
 	static void readFBXUVs(FbxMesh* mesh, MeshObject* outMesh);
+
+	static void readTris(FbxMesh* mesh, MeshObject* outMesh);
 };
 
 #endif

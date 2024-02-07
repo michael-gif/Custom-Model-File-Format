@@ -1,6 +1,5 @@
-#pragma once
-#ifndef MESHOBJECT_H_
-#define MESHOBJECT_H_
+#ifndef SRC_MODEL_MESHOBJECT_H_
+#define SRC_MODEL_MESHOBJECT_H_
 
 #include <iostream>
 #include <vector>
@@ -56,6 +55,8 @@ public:
     };
 
     std::vector<Vertex> vertices;
+    std::vector<int> vertexIndices;
+    std::vector<uint32_t> edges;
     std::vector<std::vector<int>> triangleStrips;
     std::vector<float> uvs;
     std::vector<std::vector<float>> normalStrips;

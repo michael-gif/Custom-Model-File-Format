@@ -3,9 +3,11 @@
 #include <fstream>
 #include <vector>
 #include <string>
-#include <FBXReader.h>
-#include <ModelManager.h>
-#include <Timer.hpp>
+#include <model/FBXReader.h>
+#include <model/ModelManager.h>
+#include <util/Timer.hpp>
+#include <model/MeshObject.h>
+#include <striper/TriangleStripGenerator.h>
 
 /// <summary>
 /// Command line syntax:
@@ -19,11 +21,13 @@ int main(int argc, char* argv[])
 #if _DEBUG
     auto start = Timer::begin();
     MeshObject fbxMesh;
-    if (FBXReader::readFBXModel("icohuge.fbx", &fbxMesh)) {
-        ModelManager::writeToDisk(&fbxMesh, "icohuge.m");
-        MeshObject readMesh;
-        ModelManager::readModel("icohuge.m", &readMesh);
-    }
+    FBXReader::readFBXModel("icobig.fbx", &fbxMesh);
+	
+    //if (FBXReader::readFBXModel("head.fbx", &fbxMesh)) {
+    //    ModelManager::writeToDisk(&fbxMesh, "head.m");
+    //    MeshObject readMesh;
+    //    ModelManager::readModel("head.m", &readMesh);
+    //}
 
     Timer::end(start, "Program completed in: ");
 #else

@@ -120,7 +120,8 @@ void FBXReader::readFBXVertices(FbxMesh* mesh, MeshObject* outMesh)
 #endif
 }
 
-void FBXReader::readTris(FbxMesh* mesh, MeshObject* outMesh) {
+void FBXReader::readTris(FbxMesh* mesh, MeshObject* outMesh)
+{
 	std::cout << "[MODELMAKER] Converting..." << std::endl;
 #if _DEBUG
 	auto start = Timer::begin();

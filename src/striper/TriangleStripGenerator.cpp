@@ -18,8 +18,8 @@
 /// <param name="b"></param>
 /// <param name="c"></param>
 /// <returns></returns>
-int isAdjacentFront(int y, int z, int a, int b, int c) {
-
+int isAdjacentFront(int y, int z, int a, int b, int c)
+{
 	bool b1 = false;
 	bool b2 = false;
 	bool b3 = false;
@@ -76,8 +76,8 @@ int isAdjacentFront(int y, int z, int a, int b, int c) {
 /// <param name="b"></param>
 /// <param name="c"></param>
 /// <returns></returns>
-int isAdjacentBehind(int x, int y, int a, int b, int c) {
-
+int isAdjacentBehind(int x, int y, int a, int b, int c)
+{
 	bool b1 = false;
 	bool b2 = false;
 	bool b3 = false;
@@ -115,7 +115,8 @@ int isAdjacentBehind(int x, int y, int a, int b, int c) {
 	return -1;
 }
 
-void striper(FbxMesh* inMesh, MeshObject* outMesh) {
+void striper(FbxMesh* inMesh, MeshObject* outMesh)
+{
 	int polygonCount;
 #if _DEBUG
 	auto readStart = Timer::begin();
@@ -212,14 +213,16 @@ void striper(FbxMesh* inMesh, MeshObject* outMesh) {
 #endif
 }
 
-int getRemainingIndex(uint32_t edge, uint32_t edgeA, uint32_t edgeB, uint32_t edgeC, uint64_t vertices) {
+int getRemainingIndex(uint32_t edge, uint32_t edgeA, uint32_t edgeB, uint32_t edgeC, uint64_t vertices)
+{
 	if (edge == edgeA) return (uint16_t)vertices;
 	if (edge == edgeB) return (uint16_t)(vertices >> 32);
 	if (edge == edgeC) return (uint16_t)(vertices >> 16);
 	return -1;
 }
 
-void striperNew(FbxMesh* inMesh, MeshObject* outMesh) {
+void striperNew(FbxMesh* inMesh, MeshObject* outMesh)
+{
 	auto start = Timer::begin();
 	int polygonCount = inMesh->GetPolygonCount();
 	std::vector<uint16_t> currentStrip;

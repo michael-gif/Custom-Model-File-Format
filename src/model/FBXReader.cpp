@@ -79,10 +79,10 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
     Timer::end(loadStart, "[FBX] Loaded model: ");
 
     auto convertStart = Timer::begin();
-    //readFBXVertices(mesh, outMesh);
-    //readFBXTriangles(mesh, outMesh);
-    //readFBXUVs(mesh, outMesh);
-    readTris(mesh, outMesh);
+    readFBXVertices(mesh, outMesh);
+    readFBXTriangles(mesh, outMesh);
+    //readTris(mesh, outMesh);
+    readFBXUVs(mesh, outMesh);
 
     scene->Destroy();
     ioSettings->Destroy();
@@ -276,7 +276,7 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
     int* vertices = mesh->GetPolygonVertices();
 
     // for progress bar
-    //std::cout << "0";
+    std::cout << "0";
     float previousCompletion = 0;
     float completion = 0;
 
@@ -333,8 +333,6 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
             }
             if (!adjacentTris) break; // if no adjacent triangles were found, the strip has ended.
         }
-        //std::cout << singleTriStrip[0] << " " << singleTriStrip[1] << " " << singleTriStrip[2] << " ";
-        //std::cout << singleTriStrip[singleTriStrip.size() - 1] << " " << singleTriStrip[singleTriStrip.size() - 2] << " " << singleTriStrip[singleTriStrip.size() - 3] << std::endl;
 #if _DEBUG
         sizeondisk += 2 + (singleTriStrip.size() * 2); // statistics
 #endif
@@ -342,16 +340,16 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
         singleTriStrip.clear();
 
         // progress bar
-        //completion = (1 - ((float)triangles.size() / (float)polygonCount)) * 40; // value between 1 and 40
-        //int rounded = static_cast<int>(completion);
-        //int diff = rounded - previousCompletion;
-        //if (diff) {
-        //    if (rounded % 4 == 0)
-        //        std::cout << (previousCompletion + 1) / 4;
-        //    else
-        //        std::cout << ".";
-        //    previousCompletion = rounded;
-        //}
+        completion = (1 - ((float)triangles.size() / (float)polygonCount)) * 40; // value between 1 and 40
+        int rounded = static_cast<int>(completion);
+        int diff = rounded - previousCompletion;
+        if (diff) {
+            if (rounded % 4 == 0)
+                std::cout << (previousCompletion + 1) / 4;
+            else
+                std::cout << ".";
+            previousCompletion = rounded;
+        }
 
         if (triangles.empty()) break; // no more triangles mean we have created all the strips needed.
     }

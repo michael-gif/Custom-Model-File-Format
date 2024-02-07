@@ -86,8 +86,8 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
 
     auto convertStart = Timer::begin();
     readFBXVertices(mesh, outMesh);
-    //readFBXTriangles(mesh, outMesh);
-    readTris(mesh, outMesh);
+    readFBXTriangles(mesh, outMesh);
+    //readTris(mesh, outMesh);
     readFBXUVs(mesh, outMesh);
 
     scene->Destroy();
@@ -122,11 +122,15 @@ void FBXReader::readFBXVertices(FbxMesh* mesh, MeshObject* outMesh)
 
 void FBXReader::readTris(FbxMesh* mesh, MeshObject* outMesh) {
     std::cout << "[MODELMAKER] Converting..." << std::endl;
+#if _DEBUG
     auto start = Timer::begin();
+#endif
     int polygonCount = mesh->GetPolygonCount();
     int* vertices = mesh->GetPolygonVertices();
-    uint32_t edge1, edge2, edge3;
     int vertex1, vertex2, vertex3;
+    outMesh->edges.reserve(polygonCount * 3);
+    uint32_t* edgePointer = outMesh->edges.data();
+    uint32_t edge1, edge2, edge3;
     for (int i = 0; i < polygonCount * 3; i += 3) {
         vertex1 = vertices[i];
         vertex2 = vertices[i + 1];
@@ -145,11 +149,13 @@ void FBXReader::readTris(FbxMesh* mesh, MeshObject* outMesh) {
             edge3 = (vertex3 << 16) | vertex1;
         else
             edge3 = (vertex1 << 16) | vertex3;
-        outMesh->edges.emplace_back(edge1);
-        outMesh->edges.emplace_back(edge2);
-        outMesh->edges.emplace_back(edge3);
+        edgePointer[i] = edge1;
+        edgePointer[i + 1] = edge2;
+        edgePointer[i + 2] = edge3;
     }
+#if _DEBUG
     Timer::end(start, "Read (" + std::to_string(polygonCount) + ") triangles: ");
+#endif
     striperNew(mesh, outMesh);
 }
 
@@ -160,11 +166,6 @@ void FBXReader::readTris(FbxMesh* mesh, MeshObject* outMesh) {
 /// <param name="outTriangles"></param>
 void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
 {
-#if _DEBUG
-    auto start = Timer::begin();
-    int polygonCount = mesh->GetPolygonCount();
-    Timer::end(start, "Read (" + std::to_string(polygonCount) + ") triangles: ");
-#endif
     std::cout << "[MODELMAKER] Converting..." << std::endl;
     striper(mesh, outMesh);
 }

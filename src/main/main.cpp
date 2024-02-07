@@ -22,9 +22,9 @@ int main(int argc, char* argv[])
     auto start = Timer::begin();
     MeshObject fbxMesh;
     if (FBXReader::readFBXModel("icobig.fbx", &fbxMesh)) {
-        //ModelManager::writeToDisk(&fbxMesh, "icobig.m");
-        //MeshObject readMesh;
-        //ModelManager::readModel("icobig.m", &readMesh);
+        ModelManager::writeToDisk(&fbxMesh, "icobig.m");
+        MeshObject readMesh;
+        ModelManager::readModel("icobig.m", &readMesh);
     }
 
     Timer::end(start, "Program completed in: ");

@@ -17,11 +17,11 @@ private:
 	static void readVertices(std::ifstream& file, MeshObject* mesh);
 	static void readTriangleStrips(std::ifstream& file, MeshObject* mesh);
 	static void readUVs(std::ifstream& file, MeshObject* mesh);
-	static void readNormals(std::ifstream& file, MeshObject* mesh);
+	static void readVertexNormals(std::ifstream& file, MeshObject* mesh);
 	static void writeVertices(MeshObject* mesh, std::ofstream& file);
 	static void writeTriangleStrips(MeshObject* mesh, std::ofstream& file);
 	static void writeUVs(MeshObject* mesh, std::ofstream& file);
-	static void writeNormals(MeshObject* mesh, std::ofstream& file);
+	static void writeVertexNormals(MeshObject* mesh, std::ofstream& file);
 };
 
 #endif

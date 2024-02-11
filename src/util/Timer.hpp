@@ -1,7 +1,5 @@
-#pragma once
-
-#ifndef TIMER_HPP_
-#define TIMER_HPP_
+#ifndef SRC_UTIL_TIMER_HPP_
+#define SRC_UTIL_TIMER_HPP_
 
 #include <iostream>
 #include <chrono>

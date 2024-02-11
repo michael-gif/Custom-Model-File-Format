@@ -5,22 +5,23 @@
 #include <vector>
 
 class MeshObject {
-private:
+public:
+    int sizeondisk = 0;
+
     struct Normal {
-        float x = 0;
-        float y = 0;
-        float z = 0;
+        float x = 4.2;
+        float y = 5.3;
+        float z = 6.4;
 
         Normal() {}
         Normal(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
     };
-public:
-    int sizeondisk = 0;
 
     struct Vertex {
         float x = 0;
         float y = 0;
         float z = 0;
+        Normal normal;
 
         Vertex() {}
         Vertex(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
@@ -28,22 +29,27 @@ public:
         void prntString() {
             std::cout << "(" << x << "," << y << "," << z << ")" << std::endl;
         }
-    };
 
-    struct Triangle {
-        int vertex1 = 0;
-        int vertex2 = 0;
-        int vertex3 = 0;
-        Normal normal;
-
-        Triangle() {}
-        Triangle(int v1, int v2, int v3) : vertex1(v1), vertex2(v2), vertex3(v3) {}
+        void setPos(float _x, float _y, float _z) {
+            x = _x;
+            y = _y;
+            z = _z;
+        }
 
         void setNormal(float x, float y, float z) {
             normal.x = x;
             normal.y = y;
             normal.z = z;
         }
+    };
+
+    struct Triangle {
+        int vertex1 = 0;
+        int vertex2 = 0;
+        int vertex3 = 0;
+
+        Triangle() {}
+        Triangle(int v1, int v2, int v3) : vertex1(v1), vertex2(v2), vertex3(v3) {}
     };
 
     struct UVCoord {

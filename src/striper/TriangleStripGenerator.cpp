@@ -1,118 +1,33 @@
-#include <striper/TriangleStripGenerator.h>
-#include <model/MeshObject.h>
-#include <util/Timer.hpp>
 #include <string>
 #include <numeric>
 #include <chrono>
-#include <fbxsdk.h>
 #include <algorithm>
+#include <list>
+#include <fbxsdk.h>
+#include <model/MeshObject.h>
+#include <util/Timer.hpp>
+#include <striper/TriangleStripGenerator.h>
 
-/// <summary>
-/// Compare 2 triangles, (x, y, z) and (a, b, c). If both triangles share 2 indices then they share an edge, and are considered adjacent.
-/// Return the index that the second triangle doesn't share. This will be used as the next vertex in the triangle strip.
-/// </summary>
-/// <param name="x"></param>
-/// <param name="y"></param>
-/// <param name="z"></param>
-/// <param name="a"></param>
-/// <param name="b"></param>
-/// <param name="c"></param>
-/// <returns></returns>
-int isAdjacentFront(int y, int z, int a, int b, int c)
+int getRemainingVertexIndex(int v1, int v2, int a, int b, int c)
 {
-	bool b1 = false;
-	bool b2 = false;
-	bool b3 = false;
-	if (y == a) {
-		b1 = true;
+	if (v1 == a) {
+		if (v2 == b) return c;
+		if (v2 == c) return b;
+		return -1; // if the second vertex doesn't match, return
 	}
-	else if (y == b) {
-		b2 = true;
+	else if (v1 == b) {
+		if (v2 == a) return c;
+		if (v2 == c) return a;
+		return -1; // if the second vertex doesn't match, return
 	}
-	else if (y == c) {
-		b3 = true;
-	}
-	else {
-		// If the y element isn't equal to a, b or c, then it is guaranteed that triangle a,b,c is not adjacent to x,y,z
-		return -1;
-	}
-
-	/*
-	* Check the flags first to avoid doing unecessary equality checks.
-	* Example: If the y equals the a, then we don't need to check if the z equals the a, so skip it.
-	*/
-	if (!b1 && z == a) {
-		b1 = true;
-	}
-	else if (!b2 && z == b) {
-		b2 = true;
-	}
-	else if (!b3 && z == c) {
-		b3 = true;
+	else if (v1 == c) {
+		if (v2 == b) return a;
+		if (v2 == a) return b;
+		return -1; // if the second vertex doesn't match, return
 	}
 	else {
-		// If the z element isn't equal to a, b or c, then it is guaranteed that triangle a,b,c is not adjacent to x,y,z
-		return -1;
+		return -1; // if the first vertex doesn't match a, b or c, then it is impossible to have both vertices match, thus we return
 	}
-	// when 2 indices are equal, the flag for the second index is set to true.
-	// if 2 pair of indices are found, then the triangles share an edge and are therefore adjacent.
-	// so return the flag that isn't true, and return the corresponding index from the second triangle.
-	if (!b1) return a;
-	if (!b2) return b;
-	if (!b3) return c;
-
-	return -1;
-}
-
-/// <summary>
-/// Same thing as isAdjacentFront, except we check the first two indices of against the second triangle instead of the last 2.
-/// Example: for triangles (x, y, z) and (a, b, c), instead of doing checks for y and z against (a, b, c), do checks for x and y against (a, b, c)
-/// Return the index that the second triangle doesn't share. This will be used as the next vertex in the triangle strip.
-/// </summary>
-/// <param name="x"></param>
-/// <param name="y"></param>
-/// <param name="z"></param>
-/// <param name="a"></param>
-/// <param name="b"></param>
-/// <param name="c"></param>
-/// <returns></returns>
-int isAdjacentBehind(int x, int y, int a, int b, int c)
-{
-	bool b1 = false;
-	bool b2 = false;
-	bool b3 = false;
-	if (x == a) {
-		b1 = true;
-	}
-	else if (x == b) {
-		b2 = true;
-	}
-	else if (x == c) {
-		b3 = true;
-	}
-	else {
-		// If the x element isn't equal to a, b or c, then it is guaranteed that triangle a,b,c is not adjacent to x,y,z
-		return -1;
-	}
-
-	if (!b1 && y == a) {
-		b1 = true;
-	}
-	else if (!b2 && y == b) {
-		b2 = true;
-	}
-	else if (!b3 && y == c) {
-		b3 = true;
-	}
-	else {
-		// If the y element isn't equal to a, b or c, then it is guaranteed that triangle a,b,c is not adjacent to x,y,z
-		return -1;
-	}
-	if (!b1) return a;
-	if (!b2) return b;
-	if (!b3) return c;
-
-	return -1;
 }
 
 void striper(FbxMesh* inMesh, MeshObject* outMesh)
@@ -126,13 +41,17 @@ void striper(FbxMesh* inMesh, MeshObject* outMesh)
 	auto start = Timer::begin();
 	polygonCount = inMesh->GetPolygonCount();
 	std::vector<int> triangles(polygonCount);
-	std::iota(triangles.begin(), triangles.end(), 0);
-	std::vector<uint16_t> currentStrip;
-	int sizeondisk = 0;
+	std::vector<uint16_t> currentStrip(3);
 
 	// array indexes are slow. use pointers instead
 	int* vertices = inMesh->GetPolygonVertices();
 	int* trianglesPtr = triangles.data();
+	uint16_t* stripPtr = currentStrip.data();
+
+	int stripNumber = 0;
+	int sizeondisk = 0;
+	int numTriangles = (int)triangles.size();
+	std::iota(triangles.begin(), triangles.end(), 0);
 
 	// for progress bar
 	std::cout << "0";
@@ -147,22 +66,20 @@ void striper(FbxMesh* inMesh, MeshObject* outMesh)
 		int frontZ = vertices[firstTriangleIndex + 2];
 		int backX = frontX;
 		int backY = frontY;
-		currentStrip.emplace_back(frontX);
-		currentStrip.emplace_back(frontY);
-		currentStrip.emplace_back(frontZ);
+		stripPtr[0] = frontX;
+		stripPtr[1] = frontY;
+		stripPtr[2] = frontZ;
 		triangles.erase(triangles.begin());
-
-		auto passStart = Timer::begin();
-		int numTriangles = (int)triangles.size();
+		numTriangles--;
 		while (true) {
 			int adjacentTris = 0;
 			for (int i = 0; i < numTriangles; ++i) {
-				int triangleIndex = trianglesPtr[i] * 3; // array indexes are slow. use pointer access instead
+				int triangleIndex = trianglesPtr[i] * 3;
 				int v1 = vertices[triangleIndex];
 				int v2 = vertices[triangleIndex + 1];
 				int v3 = vertices[triangleIndex + 2];
 
-				int adjacentFront = isAdjacentFront(frontY, frontZ, v1, v2, v3);
+				int adjacentFront = getRemainingVertexIndex(frontY, frontZ, v1, v2, v3);
 				if (adjacentFront != -1) {
 					++adjacentTris;
 					frontY = frontZ;
@@ -174,7 +91,7 @@ void striper(FbxMesh* inMesh, MeshObject* outMesh)
 					--i; --numTriangles;
 					continue;
 				}
-				int adjacentBehind = isAdjacentBehind(backX, backY, v1, v2, v3);
+				int adjacentBehind = getRemainingVertexIndex(backX, backY, v1, v2, v3);
 				if (adjacentBehind != -1) {
 					++adjacentTris;
 					backY = backX;
@@ -194,6 +111,7 @@ void striper(FbxMesh* inMesh, MeshObject* outMesh)
 #endif
 		outMesh->triangleStrips.emplace_back(currentStrip);
 		currentStrip.clear();
+		currentStrip.resize(3);
 
 		// progress bar
 		completion = (1 - ((float)triangles.size() / (float)polygonCount)) * 40; // value between 1 and 40
@@ -215,30 +133,35 @@ void striper(FbxMesh* inMesh, MeshObject* outMesh)
 
 int getRemainingIndex(uint32_t edge, uint32_t edgeA, uint32_t edgeB, uint32_t edgeC, uint64_t vertices)
 {
-	if (edge == edgeA) return (uint16_t)vertices;
-	if (edge == edgeB) return (uint16_t)(vertices >> 32);
-	if (edge == edgeC) return (uint16_t)(vertices >> 16);
+	if (edge == edgeA) return (vertices >> 48);
+	if (edge == edgeB) return (vertices >> 16) & 65535;
+	if (edge == edgeC) return (vertices >> 32) & 65535;
 	return -1;
 }
 
-void striperNew(FbxMesh* inMesh, MeshObject* outMesh)
+void striper2(FbxMesh* inMesh, MeshObject* outMesh)
 {
 	auto start = Timer::begin();
 	int polygonCount = inMesh->GetPolygonCount();
 	std::vector<uint16_t> currentStrip;
 	std::vector<uint16_t> triangleIndices(polygonCount);
-	std::vector<uint64_t> vertexIndices(polygonCount);
+	std::vector<uint16_t> vertexIndices(polygonCount * 4);
 
 	// array indexes are slow. use pointer access instead
 	int* vertexPointer = inMesh->GetPolygonVertices();
 	uint16_t* triangleIndicesPtr = triangleIndices.data();
 	uint32_t* edgePointer = outMesh->edges.data();
-	uint64_t* vertexIndicesPtr = vertexIndices.data();
+	uint16_t* paddedVertexIndicesPtr = vertexIndices.data();
+	uint64_t* vertexIndicesPtr = (uint64_t*)paddedVertexIndicesPtr;
 
 	std::iota(triangleIndices.begin(), triangleIndices.end(), 0);
+	// insert a 0 before every 3 vertex indices. this way they indices can be read as a uint64_t then masked later, reducing array accesses
 	for (int i = 0; i < polygonCount; ++i) {
-		int startIndex = i * 3;
-		vertexIndicesPtr[i] = ((uint64_t)vertexPointer[startIndex] << 32) | ((uint64_t)vertexPointer[startIndex + 1] << 16) | (uint64_t)vertexPointer[startIndex + 2];
+		int paddedStartIndex = i * 4;
+		int vertexStartIndex = i * 3;
+		paddedVertexIndicesPtr[paddedStartIndex + 1] = vertexPointer[vertexStartIndex];
+		paddedVertexIndicesPtr[paddedStartIndex + 2] = vertexPointer[vertexStartIndex + 1];
+		paddedVertexIndicesPtr[paddedStartIndex + 3] = vertexPointer[vertexStartIndex + 2];
 	}
 	int sizeondisk = 0;
 	int remainingTriangles = polygonCount;

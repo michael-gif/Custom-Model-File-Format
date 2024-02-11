@@ -1,12 +1,12 @@
 #include <iostream>
-#include <model/FBXReader.h>
-#include <model/MeshObject.h>
-#include <fbxsdk.h>
-#include <util/Timer.hpp>
 #include <string>
 #include <chrono>
-#include <striper/TriangleStripGenerator.h>
 #include <numeric>
+#include <fbxsdk.h>
+#include <model/FBXReader.h>
+#include <model/MeshObject.h>
+#include <util/Timer.hpp>
+#include <striper/TriangleStripGenerator.h>
 
 /// <summary>
 /// Read an FBX file
@@ -87,7 +87,6 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
 	auto convertStart = Timer::begin();
 	readFBXVertices(mesh, outMesh);
 	readFBXTriangles(mesh, outMesh);
-	//readTris(mesh, outMesh);
 	readFBXUVs(mesh, outMesh);
 
 	scene->Destroy();
@@ -120,7 +119,18 @@ void FBXReader::readFBXVertices(FbxMesh* mesh, MeshObject* outMesh)
 #endif
 }
 
-void FBXReader::readTris(FbxMesh* mesh, MeshObject* outMesh)
+/// <summary>
+/// Loop through the polygons and generate triangle strips, uv strips and a normal list
+/// </summary>
+/// <param name="mesh"></param>
+/// <param name="outTriangles"></param>
+void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
+{
+	std::cout << "[MODELMAKER] Converting..." << std::endl;
+	striper(mesh, outMesh);
+}
+
+void FBXReader::readFBXTriangles2(FbxMesh* mesh, MeshObject* outMesh)
 {
 	std::cout << "[MODELMAKER] Converting..." << std::endl;
 #if _DEBUG
@@ -130,6 +140,7 @@ void FBXReader::readTris(FbxMesh* mesh, MeshObject* outMesh)
 	int* vertices = mesh->GetPolygonVertices();
 	int vertex1, vertex2, vertex3;
 	outMesh->edges.reserve(polygonCount * 3);
+	outMesh->edges.resize(polygonCount * 3);
 	uint32_t* edgePointer = outMesh->edges.data();
 	uint32_t edge1, edge2, edge3;
 	for (int i = 0; i < polygonCount * 3; i += 3) {
@@ -157,18 +168,7 @@ void FBXReader::readTris(FbxMesh* mesh, MeshObject* outMesh)
 #if _DEBUG
 	Timer::end(start, "Read (" + std::to_string(polygonCount) + ") triangles: ");
 #endif
-	striperNew(mesh, outMesh);
-}
-
-/// <summary>
-/// Loop through the polygons and generate triangle strips, uv strips and a normal list
-/// </summary>
-/// <param name="mesh"></param>
-/// <param name="outTriangles"></param>
-void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
-{
-	std::cout << "[MODELMAKER] Converting..." << std::endl;
-	striper(mesh, outMesh);
+	striper2(mesh, outMesh);
 }
 
 /// <summary>
@@ -186,7 +186,6 @@ void FBXReader::readFBXUVs(FbxMesh* mesh, MeshObject* outMesh)
 	FbxString uvMapName = uvSetNames[0];
 	FbxVector2 uvCoord;
 	bool unmapped;
-	int* vertices = mesh->GetPolygonVertices();
 	for (int i = 0; i < mesh->GetPolygonCount(); ++i) {
 		mesh->GetPolygonVertexUV(i, 0, uvMapName, uvCoord, unmapped);
 		outMesh->uvs.emplace_back(uvCoord[0]);

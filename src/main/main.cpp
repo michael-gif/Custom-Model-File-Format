@@ -3,11 +3,11 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <model/MeshObject.h>
 #include <model/FBXReader.h>
 #include <model/ModelManager.h>
-#include <util/Timer.hpp>
-#include <model/MeshObject.h>
 #include <striper/TriangleStripGenerator.h>
+#include <util/Timer.hpp>
 
 /// <summary>
 /// Command line syntax:
@@ -25,6 +25,7 @@ int main(int argc, char* argv[])
         ModelManager::writeToDisk(&fbxMesh, "icobig.m");
         MeshObject readMesh;
         ModelManager::readModel("icobig.m", &readMesh);
+        ModelManager::compare(&readMesh, &fbxMesh);
     }
 
     Timer::end(start, "Program completed in: ");

@@ -56,7 +56,6 @@ void striper(FbxMesh* inMesh, MeshObject* outMesh)
 	// for progress bar
 	std::cout << "0";
 	int previousCompletion = 0;
-	int completion = 0;
 	const char* progessChars = "...1...2...3...4...5...6...7...8...9...1";
 
 	while (true) {
@@ -114,7 +113,8 @@ void striper(FbxMesh* inMesh, MeshObject* outMesh)
 		currentStrip.resize(3);
 
 		// progress bar
-		completion = (1 - ((float)triangles.size() / (float)polygonCount)) * 40; // value between 1 and 40
+		float fraction = (float)triangles.size() / (float)polygonCount;
+		int completion = (int)((1 - fraction) * 40); // value between 1 and 40
 		int diff = completion - previousCompletion;
 		if (diff) {
 			for (int i = 0; i < diff; ++i)
@@ -169,7 +169,6 @@ void striper2(FbxMesh* inMesh, MeshObject* outMesh)
 	// for progress bar
 	std::cout << "0";
 	int previousCompletion = 0;
-	int completion = 0;
 	const char* progessChars = "...1...2...3...4...5...6...7...8...9...1";
 
 	while (true) {
@@ -234,7 +233,8 @@ void striper2(FbxMesh* inMesh, MeshObject* outMesh)
 		currentStrip.clear();
 
 		// progress bar
-		completion = (1 - ((float)triangleIndices.size() / (float)polygonCount)) * 40; // value between 1 and 40
+		float fraction = (float)triangleIndices.size() / (float)polygonCount;
+		int completion = (int)((1 - fraction) * 40); // value between 1 and 40
 		int diff = completion - previousCompletion;
 		if (diff) {
 			for (int i = 0; i < diff; ++i)

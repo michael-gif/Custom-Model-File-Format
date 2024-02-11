@@ -10,8 +10,8 @@
 
 void ModelManager::compare(MeshObject* meshA, MeshObject* meshB) {
     //compare vertices
-    int meshAVerts = meshA->vertices.size();
-    int meshBVerts = meshB->vertices.size();
+    int meshAVerts = (int)meshA->vertices.size();
+    int meshBVerts = (int)meshB->vertices.size();
     std::cout << meshAVerts << "/" << meshBVerts << " vertices\n";
     int numCorrect = 0;
     for (int i = 0; i < meshBVerts; ++i) {
@@ -22,8 +22,8 @@ void ModelManager::compare(MeshObject* meshA, MeshObject* meshB) {
     std::cout << "Vertices are " << ((float)numCorrect / (float)meshBVerts) * 100 << "% accurate" << std::endl;
 
     // compare triangle strips
-    int meshATriStrips = meshA->triangleStrips.size();
-    int meshBTriStrips = meshB->triangleStrips.size();
+    int meshATriStrips = (int)meshA->triangleStrips.size();
+    int meshBTriStrips = (int)meshB->triangleStrips.size();
     std::cout << meshATriStrips << "/" << meshBTriStrips << " triangle strips\n";
     if (meshATriStrips != meshBTriStrips) return;
     int numIndices = 0;
@@ -37,8 +37,8 @@ void ModelManager::compare(MeshObject* meshA, MeshObject* meshB) {
     std::cout << "Triangle strips are " << ((float)numCorrect / (float)numIndices) * 100 << "% accurate" << std::endl;
 
     // compare uv strips
-    int uvsA = meshA->uvs.size();
-    int uvsB = meshB->uvs.size();
+    int uvsA = (int)meshA->uvs.size();
+    int uvsB = (int)meshB->uvs.size();
     std::cout << uvsA << "/" << uvsB << " uvs\n";
     numCorrect = 0;
     for (int i = 0; i < uvsB; i++) {
@@ -304,7 +304,7 @@ void ModelManager::writeVertices(MeshObject* mesh, std::ofstream& file)
 #if _DEBUG
     auto start = Timer::begin();
 #endif
-    int numVertices = mesh->vertices.size();
+    int numVertices = (int)mesh->vertices.size();
     file.write(reinterpret_cast<const char*>(&numVertices), 2);
     for (int i = 0; i < numVertices; ++i) {
         file.write(reinterpret_cast<const char*>(&mesh->vertices[i].x), 4);
@@ -328,7 +328,7 @@ void ModelManager::writeTriangleStrips(MeshObject* mesh, std::ofstream& file)
 #if _DEBUG
     auto start = Timer::begin();
 #endif
-    int numTriStrips = mesh->triangleStrips.size();
+    int numTriStrips = (int)mesh->triangleStrips.size();
     file.write(reinterpret_cast<const char*>(&numTriStrips), 2);
     int numBytes = 0;
     for (int i = 0; i < numTriStrips; ++i) {
@@ -356,7 +356,7 @@ void ModelManager::writeUVs(MeshObject* mesh, std::ofstream& file)
 #if _DEBUG
     auto start = Timer::begin();
 #endif
-    uint16_t numUVs = mesh->uvs.size();
+    int numUVs = (int)mesh->uvs.size();
     file.write(reinterpret_cast<const char*>(&numUVs), 2);
     for (int i = 0; i < numUVs; ++i) {
         uint16_t uvInt = static_cast<uint16_t>(mesh->uvs[i] * 10000);
@@ -378,7 +378,7 @@ void ModelManager::writeVertexNormals(MeshObject* mesh, std::ofstream& file)
 #if _DEBUG
     auto start = Timer::begin();
 #endif
-    int numVertexNormals = mesh->vertices.size();
+    int numVertexNormals = (int)mesh->vertices.size();
     file.write(reinterpret_cast<const char*>(&numVertexNormals), 2);
     int numBytes = numVertexNormals * 12;
     mesh->sizeondisk += numBytes;

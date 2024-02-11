@@ -9,9 +9,9 @@ public:
     int sizeondisk = 0;
 
     struct Normal {
-        float x = 4.2;
-        float y = 5.3;
-        float z = 6.4;
+        float x = 0;
+        float y = 0;
+        float z = 0;
 
         Normal() {}
         Normal(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}

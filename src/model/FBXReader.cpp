@@ -186,16 +186,20 @@ void FBXReader::readFBXUVs(FbxMesh* mesh, MeshObject* outMesh)
 	FbxString uvMapName = uvSetNames[0];
 	FbxVector2 uvCoord;
 	bool unmapped;
+	outMesh->uvs.resize(mesh->GetPolygonCount() * 6);
+	float* uvs = outMesh->uvs.data();
+
 	for (int i = 0; i < mesh->GetPolygonCount(); ++i) {
+		int startIndex = i * 6;
 		mesh->GetPolygonVertexUV(i, 0, uvMapName, uvCoord, unmapped);
-		outMesh->uvs.emplace_back(uvCoord[0]);
-		outMesh->uvs.emplace_back(uvCoord[1]);
+		uvs[i + 0] = (float)uvCoord[0];
+		uvs[i + 1] = (float)uvCoord[1];
 		mesh->GetPolygonVertexUV(i, 1, uvMapName, uvCoord, unmapped);
-		outMesh->uvs.emplace_back(uvCoord[0]);
-		outMesh->uvs.emplace_back(uvCoord[1]);
+		uvs[i + 2] = (float)uvCoord[0];
+		uvs[i + 3] = (float)uvCoord[1];
 		mesh->GetPolygonVertexUV(i, 2, uvMapName, uvCoord, unmapped);
-		outMesh->uvs.emplace_back(uvCoord[0]);
-		outMesh->uvs.emplace_back(uvCoord[1]);
+		uvs[i + 4] = (float)uvCoord[0];
+		uvs[i + 5] = (float)uvCoord[1];
 	}
 #if _DEBUG
 	Timer::end(start, "Read (" + std::to_string(outMesh->uvs.size()) + ") uv's: ");

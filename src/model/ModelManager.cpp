@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <vector>
 #include <fstream>
 #include <fbxsdk.h>
@@ -93,32 +94,15 @@ void ModelManager::readVertices(std::ifstream& file, MeshObject* mesh)
     char metadataBuffer[2];
     file.read(metadataBuffer, sizeof(metadataBuffer));
     uint16_t numVertices = *reinterpret_cast<uint16_t*>(&metadataBuffer);
-
-    int chunksize = 1;
-    if (numVertices >= 64) chunksize = 64;
-    else if (numVertices >= 32) chunksize = 32;
-    else if (numVertices >= 16) chunksize = 16;
-    else if (numVertices >= 8) chunksize = 8;
-    else if (numVertices >= 4) chunksize = 4;
-
-    std::vector<char> buffer(12 * chunksize);
-    char remainderBuffer[12];
-    int remainder = numVertices % chunksize;
     mesh->vertices.resize(numVertices);
     MeshObject::Vertex* vertices = mesh->vertices.data();
-    for (int i = 0; i < numVertices / chunksize; ++i) {
-        int startIndex = i * chunksize;
-        file.read(buffer.data(), 12 * chunksize);
-        float* vertex = reinterpret_cast<float*>(buffer.data());
-        for (int j = 0; j < chunksize; ++j) {
-            vertices[startIndex + j].setPos(vertex[j * 3], vertex[(j * 3) + 1], vertex[(j * 3) + 2]);
-        }
-    }
-    int startIndex = numVertices - remainder;
-    for (int i = 0; i < remainder; ++i) {
-        file.read(remainderBuffer, sizeof(remainderBuffer));
-        float* vertex = reinterpret_cast<float*>(&remainderBuffer);
-        vertices[startIndex + i].setPos(vertex[0], vertex[1], vertex[2]);
+    int numBytes = 12 * numVertices;
+    std::vector<char> vertexBuffer(numBytes);
+    file.read(vertexBuffer.data(), numBytes);
+    float* vertexData = reinterpret_cast<float*>(vertexBuffer.data());
+    for (int i = 0; i < numVertices; ++i) {
+        int startIndex = i * 3;
+        vertices[i].setPos(vertexData[startIndex], vertexData[startIndex + 1], vertexData[startIndex + 2]);
     }
 #if _DEBUG
     Timer::end(start, "Read (" + std::to_string(mesh->vertices.size()) + ") vertices: ");
@@ -138,40 +122,21 @@ void ModelManager::readTriangleStrips(std::ifstream& file, MeshObject* mesh)
 #endif
     char metadataBuffer[2];
     char stripSizeBuffer[2];
-    char remainderBuffer[2];
     std::vector<char> vertexIndexBuffer;
     file.read(metadataBuffer, sizeof(metadataBuffer));
     uint16_t numTriStrips = *reinterpret_cast<uint16_t*>(&metadataBuffer);
-    int chunksize = 1;
     mesh->triangleStrips.resize(numTriStrips);
     std::vector<uint16_t>* triStrips = mesh->triangleStrips.data();
     for (int i = 0; i < numTriStrips; ++i) {
         file.read(stripSizeBuffer, sizeof(stripSizeBuffer));
         uint16_t stripSize = *reinterpret_cast<uint16_t*>(&stripSizeBuffer);
-
-        if (stripSize >= 64) chunksize = 64;
-        else if (stripSize >= 32) chunksize = 32;
-        else if (stripSize >= 16) chunksize = 16;
-        else if (stripSize >= 8) chunksize = 8;
-        else if (stripSize >= 4) chunksize = 4;
-
+        int numBytes = 2 * stripSize;
         triStrips[i].resize(stripSize);
         uint16_t* strip = triStrips[i].data();
-        vertexIndexBuffer.resize(2 * chunksize);
-        int remainder = stripSize % chunksize;
-        for (int j = 0; j < stripSize / chunksize; ++j) {
-            int startIndex = j * chunksize;
-            file.read(vertexIndexBuffer.data(), 2 * chunksize);
-            uint16_t* vertexIndex = reinterpret_cast<uint16_t*>(vertexIndexBuffer.data());
-            for (int k = 0; k < chunksize; ++k) {
-                strip[startIndex + k] = vertexIndex[k];
-            }
-        }
-        int startIndex = stripSize - remainder;
-        for (int j = 0; j < remainder; ++j) {
-            file.read(remainderBuffer, sizeof(remainderBuffer));
-            strip[startIndex + j] = *reinterpret_cast<uint16_t*>(&remainderBuffer);
-        }
+        vertexIndexBuffer.resize(numBytes);
+        file.read(vertexIndexBuffer.data(), numBytes);
+        std::memcpy(strip, vertexIndexBuffer.data(), numBytes);
+
     }
 #if _DEBUG
     Timer::end(start, "Read (" + std::to_string(mesh->triangleStrips.size()) + ") triangle strips: ");
@@ -191,37 +156,18 @@ void ModelManager::readUVs(std::ifstream& file, MeshObject* mesh)
     auto start = Timer::begin();
 #endif
     char metadataBuffer[2];
-    char remainderBuffer[2];
     file.read(metadataBuffer, sizeof(metadataBuffer));
     uint16_t numUVs = *reinterpret_cast<uint16_t*>(&metadataBuffer);
-
-    int chunksize = 1;
-    if (numUVs >= 256) chunksize = 256;
-    else if (numUVs >= 128) chunksize = 128;
-    else if (numUVs >= 64) chunksize = 64;
-    else if (numUVs >= 32) chunksize = 32;
-    else if (numUVs >= 16) chunksize = 16;
-    else if (numUVs >= 8) chunksize = 8;
-    else if (numUVs >= 4) chunksize = 4;
-
-    std::vector<char> uvCoordBuffer(2 * chunksize);
+    int numBytes = 2 * numUVs;
+    std::vector<char> buffer(numBytes);
+    file.read(buffer.data(), numBytes);
+    uint16_t* uvsPtr = reinterpret_cast<uint16_t*>(buffer.data());
     mesh->uvs.resize(numUVs);
-    float* uvs = mesh->uvs.data();
-    int remainder = numUVs % chunksize;
-    for (int i = 0; i < numUVs / chunksize; ++i) {
-        int uvStartIndex = i * chunksize;
-        file.read(uvCoordBuffer.data(), 2 * chunksize);
-        uint16_t* uvCoords = reinterpret_cast<uint16_t*>(uvCoordBuffer.data());
-        for (int j = 0; j < chunksize; ++j) {
-            uvs[uvStartIndex + j] = (float)uvCoords[j] / 10000;
-        }
+    float* meshUvsPtr = mesh->uvs.data();
+    for (int i = 0; i < numUVs; ++i) {
+        meshUvsPtr[i] = (float)uvsPtr[i] / 10000;
     }
-    int startIndex = numUVs - remainder;
-    for (int i = 0; i < remainder; ++i) {
-        file.read(remainderBuffer, sizeof(remainderBuffer));
-        uint16_t* uvCoords = reinterpret_cast<uint16_t*>(&uvCoordBuffer);
-        uvs[startIndex + i] = (float)uvCoords[0] / 10000;
-    }
+
 #if _DEBUG
     Timer::end(start, "Read (" + std::to_string(mesh->uvs.size()) + ") uvs: ");
 #endif
@@ -242,29 +188,14 @@ void ModelManager::readVertexNormals(std::ifstream& file, MeshObject* mesh)
     char metadataBuffer[2];
     file.read(metadataBuffer, sizeof(metadataBuffer));
     uint16_t numVertexNormals = *reinterpret_cast<uint16_t*>(&metadataBuffer);
-
-    int chunksize = 1;
-    if (numVertexNormals >= 64) chunksize = 64;
-    else if (numVertexNormals >= 32) chunksize = 32;
-    else if (numVertexNormals >= 16) chunksize = 16;
-    else if (numVertexNormals >= 8) chunksize = 8;
-    else if (numVertexNormals >= 4) chunksize = 4;
-
-    std::vector<char> normalBuffer(12 * chunksize);
-    char remainderBuffer[12];
+    int numBytes = 12 * numVertexNormals;
+    std::vector<char> buffer(numBytes);
+    file.read(buffer.data(), numBytes);
     MeshObject::Vertex* vertices = mesh->vertices.data();
-    int remainder = numVertexNormals % chunksize;
-    for (int i = 0; i < numVertexNormals / chunksize; ++i) {
-        file.read(normalBuffer.data(), 12 * chunksize);
-        float* normal = reinterpret_cast<float*>(normalBuffer.data());
-        for (int j = 0; j < chunksize; ++j) {
-            vertices[j].setNormal(normal[(j * 3)], normal[(j * 3) + 1], normal[(j * 3) + 2]);
-        }
-    }
-    for (int i = 0; i < remainder; ++i) {
-        file.read(remainderBuffer, 12);
-        float* normal = reinterpret_cast<float*>(&remainderBuffer);
-        vertices[i].setNormal(normal[0], normal[1], normal[2]);
+    float* normals = reinterpret_cast<float*>(buffer.data());
+    for (int i = 0; i < numVertexNormals; ++i) {
+        int startIndex = i * 3;
+        vertices[i].setNormal(normals[startIndex], normals[startIndex + 1], normals[startIndex + 2]);
     }
 #if _DEBUG
     Timer::end(start, "Read (" + std::to_string(numVertexNormals) + ") vertex normals: ");
@@ -339,9 +270,10 @@ void ModelManager::writeTriangleStrips(MeshObject* mesh, std::ofstream& file)
     for (int i = 0; i < numTriStrips; ++i) {
         std::vector<uint16_t> strip = mesh->triangleStrips[i];
         uint16_t stripSize = (uint16_t)strip.size();
-        numBytes += 2 + (stripSize * 2);
+        int numStripBytes = 2 * stripSize;
+        numBytes += 2 + (numStripBytes);
         file.write(reinterpret_cast<const char*>(&stripSize), 2);
-        file.write(reinterpret_cast<const char*>(strip.data()), 2 * stripSize);
+        file.write(reinterpret_cast<const char*>(strip.data()), numStripBytes);
     }
     mesh->sizeondisk += 2 + numBytes;
 #if _DEBUG
@@ -367,10 +299,11 @@ void ModelManager::writeUVs(MeshObject* mesh, std::ofstream& file)
     for (int i = 0; i < numUVs; ++i) {
         writableUvsPtr[i] = static_cast<uint16_t>(uvs[i] * 10000);
     }
-    file.write(reinterpret_cast<const char*>(writableUvsPtr), 2 * numUVs);
-    mesh->sizeondisk += 2 + (numUVs * 2);
+    int numBytes = 2 * numUVs;
+    file.write(reinterpret_cast<const char*>(writableUvsPtr), numBytes);
+    mesh->sizeondisk += 2 + (numBytes);
 #if _DEBUG
-    Timer::end(start, "Wrote (" + std::to_string(numUVs) + ") uv coords (" + std::to_string(2 + (numUVs * 2)) + " bytes): ");
+    Timer::end(start, "Wrote (" + std::to_string(numUVs) + ") uv coords (" + std::to_string(2 + (numBytes)) + " bytes): ");
 #endif
 }
 

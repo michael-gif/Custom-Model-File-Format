@@ -145,7 +145,7 @@ void striper2(FbxMesh* inMesh, MeshObject* outMesh)
 	int polygonCount = inMesh->GetPolygonCount();
 	std::vector<uint16_t> currentStrip;
 	std::vector<uint16_t> triangleIndices(polygonCount);
-	std::vector<uint16_t> vertexIndices(polygonCount * 4);
+	std::vector<uint16_t> vertexIndices(static_cast<size_t>(polygonCount) * 4);
 
 	// array indexes are slow. use pointer access instead
 	int* vertexPointer = inMesh->GetPolygonVertices();

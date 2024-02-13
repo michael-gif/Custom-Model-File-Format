@@ -19,6 +19,7 @@
 int main(int argc, char* argv[])
 {
 #if _DEBUG
+    std::cout << "MSVC Version: " << _MSC_VER << std::endl;
     auto start = Timer::begin();
     MeshObject fbxMesh;
     if (FBXReader::readFBXModel("icobig.fbx", &fbxMesh)) {

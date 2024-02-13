@@ -284,7 +284,6 @@ void ModelManager::writeToDisk(MeshObject* mesh, std::string filename)
     writeTriangleStrips(mesh, modelFile);
     writeUVs(mesh, modelFile);
     writeVertexNormals(mesh, modelFile);
-    modelFile.close();
     Timer::end(start, "[MODELMAKER] Wrote model to disk (" + std::to_string(mesh->sizeondisk) + " bytes): ");
 }
 
@@ -306,11 +305,17 @@ void ModelManager::writeVertices(MeshObject* mesh, std::ofstream& file)
 #endif
     int numVertices = (int)mesh->vertices.size();
     file.write(reinterpret_cast<const char*>(&numVertices), 2);
+    std::vector<float> values(numVertices * 3);
+    float* ptr = values.data();
+    MeshObject::Vertex* vertices = mesh->vertices.data();
     for (int i = 0; i < numVertices; ++i) {
-        file.write(reinterpret_cast<const char*>(&mesh->vertices[i].x), 4);
-        file.write(reinterpret_cast<const char*>(&mesh->vertices[i].y), 4);
-        file.write(reinterpret_cast<const char*>(&mesh->vertices[i].z), 4);
+        int startIndex = i * 3;
+        MeshObject::Vertex v = vertices[i];
+        ptr[startIndex + 0] = v.x;
+        ptr[startIndex + 1] = v.y;
+        ptr[startIndex + 2] = v.z;
     }
+    file.write(reinterpret_cast<const char*>(ptr), 4 * values.size());
     int numBytes = 2 + (numVertices * 12);
     mesh->sizeondisk += numBytes;
 #if _DEBUG
@@ -336,9 +341,7 @@ void ModelManager::writeTriangleStrips(MeshObject* mesh, std::ofstream& file)
         uint16_t stripSize = (uint16_t)strip.size();
         numBytes += 2 + (stripSize * 2);
         file.write(reinterpret_cast<const char*>(&stripSize), 2);
-        for (int j = 0; j < stripSize; ++j) {
-            file.write(reinterpret_cast<const char*>(&strip[j]), 2);
-        }
+        file.write(reinterpret_cast<const char*>(strip.data()), 2 * stripSize);
     }
     mesh->sizeondisk += 2 + numBytes;
 #if _DEBUG
@@ -357,11 +360,14 @@ void ModelManager::writeUVs(MeshObject* mesh, std::ofstream& file)
     auto start = Timer::begin();
 #endif
     int numUVs = (int)mesh->uvs.size();
+    float* uvs = mesh->uvs.data();
+    std::vector<uint16_t> writableUvs(numUVs);
+    uint16_t* writableUvsPtr = writableUvs.data();
     file.write(reinterpret_cast<const char*>(&numUVs), 2);
     for (int i = 0; i < numUVs; ++i) {
-        uint16_t uvInt = static_cast<uint16_t>(mesh->uvs[i] * 10000);
-        file.write(reinterpret_cast<const char*>(&uvInt), 2);
+        writableUvsPtr[i] = static_cast<uint16_t>(uvs[i] * 10000);
     }
+    file.write(reinterpret_cast<const char*>(writableUvsPtr), 2 * numUVs);
     mesh->sizeondisk += 2 + (numUVs * 2);
 #if _DEBUG
     Timer::end(start, "Wrote (" + std::to_string(numUVs) + ") uv coords (" + std::to_string(2 + (numUVs * 2)) + " bytes): ");
@@ -382,12 +388,17 @@ void ModelManager::writeVertexNormals(MeshObject* mesh, std::ofstream& file)
     file.write(reinterpret_cast<const char*>(&numVertexNormals), 2);
     int numBytes = numVertexNormals * 12;
     mesh->sizeondisk += numBytes;
+    MeshObject::Vertex* vertices = mesh->vertices.data();
+    std::vector<float> normals(numVertexNormals * 3);
+    float* normalsPtr = normals.data();
     for (int i = 0; i < numVertexNormals; ++i) {
-        MeshObject::Normal normal = mesh->vertices[i].normal;
-        file.write(reinterpret_cast<const char*>(&normal.x), 4);
-        file.write(reinterpret_cast<const char*>(&normal.y), 4);
-        file.write(reinterpret_cast<const char*>(&normal.z), 4);
+        int startIndex = i * 3;
+        MeshObject::Normal normal = vertices[i].normal;
+        normalsPtr[startIndex + 0] = normal.x;
+        normalsPtr[startIndex + 1] = normal.y;
+        normalsPtr[startIndex + 2] = normal.z;
     }
+    file.write(reinterpret_cast<const char*>(normals.data()), 4 * normals.size());
 #if _DEBUG
     Timer::end(start, "Wrote (" + std::to_string(numVertexNormals) + ") vertex normals (" + std::to_string(numBytes) + " bytes): ");
 #endif

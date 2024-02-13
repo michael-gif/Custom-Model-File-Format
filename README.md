@@ -8,7 +8,6 @@ version, so i included it in the files under the `autodesk fbx dll\` directory.
 - The program checks the first mesh of the first object in the fbx file, so to
 avoid issues, only have one object with one mesh in the file.
 
-
 ### Usage
 Syntax:  
 `modelmaker <input fbx file> <output file with any extension>`  

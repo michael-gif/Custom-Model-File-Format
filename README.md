@@ -2,13 +2,15 @@
 Specialised file format for storing mesh data. (Vertices, triangles, uvs and normals)
 
 ### Requirements for running
+```
 Visual C++ runtime dlls:
-- `msvcp140.dll`, `vcruntime140.dll`, `vcruntime140_1.dll`  
-
+- msvcp140.dll
+- vcruntime140.dll
+- vcruntime140_1.dll
 Autodesk FBX SDK dll:
-- `libfbxsdk.dll`  
-
-All dependencies are included in the [latest release](https://github.com/michael-gif/Custom-Model-File-Format/releases/tag/1.0.0)
+- libfbxsdk.dll
+```
+- All dependencies are included in the [latest release](https://github.com/michael-gif/Custom-Model-File-Format/releases/tag/1.0.0)
 as well as the [`dependencies\`](https://github.com/michael-gif/Custom-Model-File-Format/tree/main/dependencies) directory of this repository
 - The program checks the first mesh of the first object in the fbx file, so to
 avoid issues, only have one object with one mesh in the file.

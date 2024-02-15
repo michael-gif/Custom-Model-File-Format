@@ -1,6 +1,5 @@
-#pragma once
-#ifndef MODEL_MANAGER_HPP
-#define MODEL_MANAGER_HPP
+#ifndef SRC_MODEL_MODELMANAGER_H_
+#define SRC_MODEL_MODELMANAGER_H_
 
 #include <model/MeshObject.h>
 #include <string>

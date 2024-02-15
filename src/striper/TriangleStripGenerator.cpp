@@ -1,33 +1,26 @@
 #include <string>
 #include <numeric>
-#include <chrono>
-#include <algorithm>
-#include <list>
 #include <fbxsdk.h>
 #include <model/MeshObject.h>
-#include <util/Timer.hpp>
 #include <striper/TriangleStripGenerator.h>
+#include <util/Timer.hpp>
+#include <util/ProgressBar.hpp>
 
 int getRemainingVertexIndex(int v1, int v2, int a, int b, int c)
 {
 	if (v1 == a) {
 		if (v2 == b) return c;
 		if (v2 == c) return b;
-		return -1; // if the second vertex doesn't match, return
 	}
 	else if (v1 == b) {
 		if (v2 == a) return c;
 		if (v2 == c) return a;
-		return -1; // if the second vertex doesn't match, return
 	}
 	else if (v1 == c) {
 		if (v2 == b) return a;
 		if (v2 == a) return b;
-		return -1; // if the second vertex doesn't match, return
 	}
-	else {
-		return -1; // if the first vertex doesn't match a, b or c, then it is impossible to have both vertices match, thus we return
-	}
+	return -1;
 }
 
 void striper(FbxMesh* inMesh, MeshObject* outMesh)
@@ -53,10 +46,9 @@ void striper(FbxMesh* inMesh, MeshObject* outMesh)
 	int numTriangles = (int)triangles.size();
 	std::iota(triangles.begin(), triangles.end(), 0);
 
-	// for progress bar
-	std::cout << "0";
-	int previousCompletion = 0;
-	const char* progessChars = "...1...2...3...4...5...6...7...8...9...1";
+	ProgressBar progressBar(polygonCount);
+	progressBar.start();
+
 
 	while (true) {
 		int firstTriangleIndex = trianglesPtr[0] * 3;
@@ -111,16 +103,7 @@ void striper(FbxMesh* inMesh, MeshObject* outMesh)
 		outMesh->triangleStrips.emplace_back(currentStrip);
 		currentStrip.clear();
 		currentStrip.resize(3);
-
-		// progress bar
-		float fraction = (float)triangles.size() / (float)polygonCount;
-		int completion = (int)((1 - fraction) * 40); // value between 1 and 40
-		int diff = completion - previousCompletion;
-		if (diff) {
-			for (int i = 0; i < diff; ++i)
-				std::cout << progessChars[previousCompletion + i];
-			previousCompletion = completion;
-		}
+		progressBar.updateProgress(polygonCount - triangles.size());
 
 		if (triangles.empty()) break; // no more triangles mean we have created all the strips needed.
 	}
@@ -167,9 +150,8 @@ void striper2(FbxMesh* inMesh, MeshObject* outMesh)
 	int remainingTriangles = polygonCount;
 
 	// for progress bar
-	std::cout << "0";
-	int previousCompletion = 0;
-	const char* progessChars = "...1...2...3...4...5...6...7...8...9...1";
+	ProgressBar progressBar(polygonCount);
+	progressBar.start();
 
 	while (true) {
 		int firstTriangleIndex = triangleIndicesPtr[0] * 3;
@@ -231,16 +213,7 @@ void striper2(FbxMesh* inMesh, MeshObject* outMesh)
 #endif
 		outMesh->triangleStrips.emplace_back(currentStrip);
 		currentStrip.clear();
-
-		// progress bar
-		float fraction = (float)triangleIndices.size() / (float)polygonCount;
-		int completion = (int)((1 - fraction) * 40); // value between 1 and 40
-		int diff = completion - previousCompletion;
-		if (diff) {
-			for (int i = 0; i < diff; ++i)
-				std::cout << progessChars[previousCompletion + i];
-			previousCompletion = completion;
-		}
+		progressBar.updateProgress(polygonCount - triangleIndices.size());
 
 		if (triangleIndices.empty()) break;
 	}

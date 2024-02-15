@@ -8,6 +8,7 @@
 class FBXReader {
 public:
 	static bool readFBXModel(const char* path, MeshObject* outMesh);
+private:
 	static void readFBXVertices(FbxMesh* mesh, MeshObject* outMesh);
 	static void readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh);
 	static void readFBXTriangles2(FbxMesh* mesh, MeshObject* outMesh);

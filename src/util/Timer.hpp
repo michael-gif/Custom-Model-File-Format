@@ -20,7 +20,7 @@ public:
             std::cout << text << durationSecond.count() << "s, " << durationMilli.count() << "ms\n";
         }
         else {
-            std::cout << text << durationMilli.count() << "ms, " << durationMicro.count() << "µs\n";
+            std::cout << text << durationMilli.count() << "ms, " << durationMicro.count() << "us\n";
         }
         std::flush(std::cout);
 	}

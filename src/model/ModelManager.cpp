@@ -13,19 +13,19 @@ void ModelManager::compare(MeshObject* meshA, MeshObject* meshB) {
     //compare vertices
     int meshAVerts = (int)meshA->vertices.size();
     int meshBVerts = (int)meshB->vertices.size();
-    std::cout << meshAVerts << "/" << meshBVerts << " vertices\n";
+    std::cout << "Vertices: " << meshAVerts << "/" << meshBVerts << ", ";
     int numCorrect = 0;
     for (int i = 0; i < meshBVerts; ++i) {
         MeshObject::Vertex a = meshA->vertices[i];
         MeshObject::Vertex b = meshB->vertices[i];
         if ((a.x == b.x) && (a.y == b.y) && (a.z == b.z)) numCorrect++;
     }
-    std::cout << "Vertices are " << ((float)numCorrect / (float)meshBVerts) * 100 << "% accurate" << std::endl;
+    std::cout << ((float)numCorrect / (float)meshBVerts) * 100 << "% accurate" << std::endl;
 
     // compare triangle strips
     int meshATriStrips = (int)meshA->triangleStrips.size();
     int meshBTriStrips = (int)meshB->triangleStrips.size();
-    std::cout << meshATriStrips << "/" << meshBTriStrips << " triangle strips\n";
+    std::cout << "Triangle strips: " << meshATriStrips << "/" << meshBTriStrips << ", ";
     if (meshATriStrips != meshBTriStrips) return;
     int numIndices = 0;
     numCorrect = 0;
@@ -35,18 +35,18 @@ void ModelManager::compare(MeshObject* meshA, MeshObject* meshB) {
             if (meshA->triangleStrips[i][j] == meshB->triangleStrips[i][j]) numCorrect++;
         }
     }
-    std::cout << "Triangle strips are " << ((float)numCorrect / (float)numIndices) * 100 << "% accurate" << std::endl;
+    std::cout << ((float)numCorrect / (float)numIndices) * 100 << "% accurate" << std::endl;
 
     // compare uv strips
     int uvsA = (int)meshA->uvs.size();
     int uvsB = (int)meshB->uvs.size();
-    std::cout << uvsA << "/" << uvsB << " uvs\n";
+    std::cout << "UV coords: " << uvsA << "/" << uvsB << ", ";
     numCorrect = 0;
     for (int i = 0; i < uvsB; i++) {
         float b = (float)static_cast<uint16_t>(meshB->uvs[i] * 10000) / 10000;
         if (meshA->uvs[i] == b) numCorrect++;
     }
-    std::cout << "UV coords are " << ((float)numCorrect / (float)uvsB) * 100 << "% accurate" << std::endl;
+    std::cout << ((float)numCorrect / (float)uvsB) * 100 << "% accurate" << std::endl;
 
     // compare vertex normals
     numCorrect = 0;
@@ -55,7 +55,7 @@ void ModelManager::compare(MeshObject* meshA, MeshObject* meshB) {
         MeshObject::Normal normalB = meshB->vertices[i].normal;
         if (normalA.x == normalB.x && normalA.y == normalB.y && normalA.z == normalB.z) numCorrect++;
     }
-    std::cout << "Normals are " << ((float)numCorrect / (float)meshA->vertices.size()) * 100 << "% accurate" << std::endl;
+    std::cout << "Normals: " << ((float)numCorrect / (float)meshA->vertices.size()) * 100 << "% accurate" << std::endl;
 }
 
 /// <summary>

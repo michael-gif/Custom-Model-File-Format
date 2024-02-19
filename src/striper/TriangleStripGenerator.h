@@ -23,8 +23,8 @@ class Striper {
 private:
 	int getRemainingVertexIndex(int v1, int v2, int a, int b, int c);
 	int getRemainingIndex(uint32_t edge, uint32_t edgeA, uint32_t edgeB, uint32_t edgeC, uint64_t vertices);
-	void createAdjacencies(std::vector<AdjTriangle>& adjacencies, int* vertices);
-	void linkAdjacencies(std::vector<AdjTriangle>& adjacencies);
+	void createAdjacencies(std::vector<AdjTriangle>* adjacencies, int* vertices);
+	void linkAdjacencies(std::vector<AdjTriangle>* adjacencies);
 	void updateLink(AdjTriangle* triangles, int firstTri, int secondTri, uint16_t vertex0, uint16_t vertex1);
 public:
 	void striper(FbxMesh* inMesh, MeshObject* outMesh);

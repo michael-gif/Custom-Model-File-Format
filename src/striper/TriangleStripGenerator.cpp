@@ -283,11 +283,11 @@ int AdjTriangle::getOppositeVertex(int v1, int v2)
 /// </summary>
 /// <param name="adjacencies">Empty adjacency vector to populate</param>
 /// <param name="vertices">Vertex array to create triangles from</param>
-void Striper::createAdjacencies(std::vector<AdjTriangle>& adjacencies, int* vertices)
+void Striper::createAdjacencies(std::vector<AdjTriangle>* adjacencies, int* vertices)
 {
 	auto start = Timer::begin();
-	AdjTriangle* adjacencyPtr = adjacencies.data();
-	for (int i = 0; i < adjacencies.size(); i++) {
+	AdjTriangle* adjacencyPtr = adjacencies->data();
+	for (int i = 0; i < adjacencies->size(); i++) {
 		int vertexIndex = i * 3;
 		int v1 = vertices[vertexIndex];
 		int v2 = vertices[vertexIndex + 1];
@@ -329,54 +329,49 @@ void Striper::updateLink(AdjTriangle* triangles, int firstTri, int secondTri, ui
 /// </summary>
 /// <param name="adjacencies"></param>
 /// <param name="triangleCount"></param>
-void Striper::linkAdjacencies(std::vector<AdjTriangle>& adjacencies)
+void Striper::linkAdjacencies(std::vector<AdjTriangle>* adjacencies)
 {
+#if _DEBUG
 	auto start = Timer::begin();
-	int edgeCount = adjacencies.size() * 3;
-	std::vector<int> faceIndices(edgeCount); // every edge has an associated face
-	std::vector<uint16_t> firstVertices(edgeCount);
-	std::vector<uint16_t> secondVertices(edgeCount);
+#endif
+	int edgeCount = adjacencies->size() * 3;
+	int* faceIndices = new int[edgeCount]; // every edge has an associated face
+	uint16_t* firstVertices = new uint16_t[edgeCount];
+	uint16_t* secondVertices = new uint16_t[edgeCount];
+	AdjTriangle* adjacencyPtr = adjacencies->data();
 
-	AdjTriangle* adjacencyPtr = adjacencies.data();
-	int* facesIndicesPtr = faceIndices.data();
-	uint16_t* firstVerticesPtr = firstVertices.data();
-	uint16_t* secondVerticesPtr = secondVertices.data();
-
-	for (int i = 0; i < adjacencies.size(); i++) {
+	for (int i = 0; i < adjacencies->size(); i++) {
 		int edgeIndex = i * 3;
-		facesIndicesPtr[edgeIndex] = i;
-		facesIndicesPtr[edgeIndex + 1] = i;
-		facesIndicesPtr[edgeIndex + 2] = i;
+		faceIndices[edgeIndex] = i;
+		faceIndices[edgeIndex + 1] = i;
+		faceIndices[edgeIndex + 2] = i;
 		AdjTriangle* triangle = &adjacencyPtr[i];
 		Edge* edges = triangle->edges;
-		firstVerticesPtr[edgeIndex] = edges[0].v1;
-		firstVerticesPtr[edgeIndex + 1] = edges[1].v1;
-		firstVerticesPtr[edgeIndex + 2] = edges[2].v1;
-		secondVerticesPtr[edgeIndex] = edges[0].v2;
-		secondVerticesPtr[edgeIndex + 1] = edges[1].v2;
-		secondVerticesPtr[edgeIndex + 2] = edges[2].v2;
+		firstVertices[edgeIndex] = edges[0].v1;
+		firstVertices[edgeIndex + 1] = edges[1].v1;
+		firstVertices[edgeIndex + 2] = edges[2].v1;
+		secondVertices[edgeIndex] = edges[0].v2;
+		secondVertices[edgeIndex + 1] = edges[1].v2;
+		secondVertices[edgeIndex + 2] = edges[2].v2;
 	}
 	
 	//Sort the edges by first vertex then second vertex, ensuring that adjacent edges are next to each other
-	//auto start3 = Timer::begin();
 	RadixSorter sorter;
-	std::vector<int> firstSortedIndices(edgeCount);
-	std::vector<int> secondSortedIndices(edgeCount);
-	sorter.sort(firstVertices, firstSortedIndices);
-	sorter.sort(secondVertices, secondSortedIndices, firstSortedIndices);
-	//Timer::end(start3, "Sorted indices: ");
+	int* firstSortedIndices = new int[edgeCount];
+	int* secondSortedIndices = new int[edgeCount];
+	sorter.sort(edgeCount, firstVertices, firstSortedIndices);
+	sorter.sort(edgeCount, secondVertices, firstSortedIndices, secondSortedIndices);
 
 	// Read the list in sorted order, creating links between adjacent triangles
-	//auto start4 = Timer::begin();
-	uint16_t lastVertex0 = firstVerticesPtr[secondSortedIndices[0]];
-	uint16_t lastVertex1 = secondVerticesPtr[secondSortedIndices[0]];
+	uint16_t lastVertex0 = firstVertices[secondSortedIndices[0]];
+	uint16_t lastVertex1 = secondVertices[secondSortedIndices[0]];
 	char count = 0;
 	int tmpBuffer[3];
 
 	for (int i = 0; i < edgeCount; i++) {
-		int faceIndex = facesIndicesPtr[secondSortedIndices[i]];
-		uint16_t vertex0 = firstVerticesPtr[secondSortedIndices[i]];
-		uint16_t vertex1 = secondVerticesPtr[secondSortedIndices[i]];
+		int faceIndex = faceIndices[secondSortedIndices[i]];
+		uint16_t vertex0 = firstVertices[secondSortedIndices[i]];
+		uint16_t vertex1 = secondVertices[secondSortedIndices[i]];
 		if (vertex0 == lastVertex0 && vertex1 == lastVertex1) {
 			tmpBuffer[count] = faceIndex;
 			count++;
@@ -391,16 +386,23 @@ void Striper::linkAdjacencies(std::vector<AdjTriangle>& adjacencies)
 		}
 	}
 	if (count == 2) updateLink(adjacencyPtr, tmpBuffer[0], tmpBuffer[1], lastVertex0, lastVertex1);
-	//Timer::end(start4, "Linking: ");
 
-	//int memoryUsage = 0;
-	//memoryUsage += faceIndices.size() * sizeof(int);
-	//memoryUsage += firstVertices.size() * sizeof(uint16_t);
-	//memoryUsage += secondVertices.size() * sizeof(uint16_t);
-	//memoryUsage += firstSortedIndices.size() * sizeof(int);
-	//memoryUsage += secondSortedIndices.size() * sizeof(int);
-	//std::cout << "Memory usage: " << memoryUsage << " bytes\n";
+	delete[] faceIndices;
+	delete[] firstVertices;
+	delete[] secondVertices;
+	delete[] firstSortedIndices;
+	delete[] secondSortedIndices;
+
+#if _DEBUG
+	int memoryUsage = 0;
+	memoryUsage += edgeCount * sizeof(int);
+	memoryUsage += edgeCount * sizeof(uint16_t);
+	memoryUsage += edgeCount * sizeof(uint16_t);
+	memoryUsage += edgeCount * sizeof(int);
+	memoryUsage += edgeCount * sizeof(int);
+	std::cout << "Linking memory usage: " << memoryUsage << " bytes\n";
 	Timer::end(start, "Linked adjacencies: ");
+#endif
 }
 
 void Striper::striper4(FbxMesh* inMesh, MeshObject* outMesh)
@@ -410,9 +412,21 @@ void Striper::striper4(FbxMesh* inMesh, MeshObject* outMesh)
 	std::cout << "Found (" << triangleCount << ") triangles" << std::endl;
 
 	int* vertices = inMesh->GetPolygonVertices();
-	std::vector<AdjTriangle> adjacencies(triangleCount);
+	auto adjacencies = new std::vector<AdjTriangle>(triangleCount); // vector is allocated on heap because there may be tens of thousands of triangles
 	createAdjacencies(adjacencies, vertices);
 	linkAdjacencies(adjacencies);
+	
+	//AdjTriangle* ptr = adjacencies->data();
+	//for (int i = 0; i < 20; i++) {
+	//	AdjTriangle tri = ptr[i];
+	//	std::cout << std::setw(2) << i << ": " << std::setw(4) << tri.adjacentTris[0] << " " << tri.adjacentTris[1] << " " << tri.adjacentTris[2] << "\n";
+	//}
 
 	//TODO walk through adjacencies to generate strips
+
+	delete adjacencies;
+
+	int memoryUsage = 0;
+	memoryUsage += triangleCount * 36;
+	std::cout << "Memory usage: " << memoryUsage << " bytes\n";
 }

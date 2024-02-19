@@ -85,9 +85,9 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
 	Timer::end(loadStart, "[FBX] Loaded model: ");
 
 	auto convertStart = Timer::begin();
-	readFBXVertices(mesh, outMesh);
-	readFBXTriangles(mesh, outMesh);
-	readFBXUVs(mesh, outMesh);
+	//readFBXVertices(mesh, outMesh);
+	readFBXTriangles3(mesh, outMesh);
+	//readFBXUVs(mesh, outMesh);
 
 	scene->Destroy();
 	ioSettings->Destroy();
@@ -127,7 +127,8 @@ void FBXReader::readFBXVertices(FbxMesh* mesh, MeshObject* outMesh)
 void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
 {
 	std::cout << "[MODELMAKER] Converting..." << std::endl;
-	striper(mesh, outMesh);
+	Striper striper;
+	striper.striper(mesh, outMesh);
 }
 
 void FBXReader::readFBXTriangles2(FbxMesh* mesh, MeshObject* outMesh)
@@ -168,7 +169,13 @@ void FBXReader::readFBXTriangles2(FbxMesh* mesh, MeshObject* outMesh)
 #if _DEBUG
 	Timer::end(start, "Read (" + std::to_string(polygonCount) + ") triangles: ");
 #endif
-	striper2(mesh, outMesh);
+	Striper striper;
+	striper.striper2(mesh, outMesh);
+}
+
+void FBXReader::readFBXTriangles3(FbxMesh* mesh, MeshObject* outMesh) {
+	Striper striper;
+	striper.striper4(mesh, outMesh);
 }
 
 /// <summary>

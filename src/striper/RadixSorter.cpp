@@ -12,7 +12,7 @@ void RadixSorter::sort(std::vector<uint16_t>& inputArray, std::vector<int>& outp
 		maxValue = maxValue / 10;
 		++digit;
 	}
-	int numElements = inputArray.size();
+	int numElements = (int)inputArray.size();
 	std::vector<int> inputIndices(numElements);
 	std::iota(inputIndices.begin(), inputIndices.end(), 0);
 	for (int i = 0; i < digit; i++) {
@@ -31,7 +31,7 @@ void RadixSorter::sort(std::vector<uint16_t>& inputArray, std::vector<int>& inpu
 		maxValue = maxValue / 10;
 		++digit;
 	}
-	int numElements = inputArray.size();
+	int numElements = (int)inputArray.size();
 	for (int i = 0; i < digit; i++) {
 		countSort(inputArray, inputIndices, outputIndices, i + 1);
 		if (i == digit - 1) break;
@@ -47,7 +47,7 @@ void RadixSorter::sort(std::vector<uint16_t>& inputArray, std::vector<int>& inpu
 /// <param name="sortedIndices"></param>
 void RadixSorter::countSort(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& outputIndices, int digit)
 {
-	int numElements = inputArray.size();
+	int numElements = (int)inputArray.size();
 	singleDigits.reserve(numElements);
 	uint8_t* singlePtr = singleDigits.data();
 	int divisor = divisors[digit - 1];

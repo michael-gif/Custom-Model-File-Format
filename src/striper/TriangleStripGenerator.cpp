@@ -305,11 +305,11 @@ void Striper::linkAdjacencies(std::vector<AdjTriangle>& adjacencies)
 void Striper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numAdjacencies, std::vector<std::vector<uint16_t>>& strips)
 {
 	auto start = Timer::begin();
-	int* indices = new int[numAdjacencies];
-	for (int i = 0; i < numAdjacencies; i++) indices[i] = i;
+	std::vector<int> indices(numAdjacencies);
+	std::iota(indices.begin(), indices.end(), 0);
 	int numTriangles = numAdjacencies;
 	AdjTriangle* triangles = adjacencies.data();
-
+	int* indicesPtr = indices.data();
 	ProgressBar progressBar(numAdjacencies);
 	progressBar.start();
 
@@ -321,16 +321,16 @@ void Striper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numAdjac
 		uint16_t* stripData = strip->data();
 		int nextTriangleIndex = -1;
 		for (int i = lastTriangleIndex; i < numAdjacencies; i++) {
-			if (indices[i] != -1) {
+			if (indicesPtr[i] != -1) {
 				nextTriangleIndex = i;
 				lastTriangleIndex = i + 1;
 				break;
 			}
 		}
-		AdjTriangle* firstTri = &triangles[indices[nextTriangleIndex]];
+		AdjTriangle* firstTri = &triangles[indicesPtr[nextTriangleIndex]];
 		AdjTriangle* currentFrontTri = firstTri;
 		AdjTriangle* currentBackTri = firstTri;
-		indices[nextTriangleIndex] = -1;
+		indicesPtr[nextTriangleIndex] = -1;
 		numTriangles--;
 		memcpy(stripData, firstTri->vertices, 3 * sizeof(uint16_t)); // move current triangle vertices into start of strip
 		uint16_t firstVertex = stripData[0];
@@ -341,8 +341,8 @@ void Striper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numAdjac
 			if (secondVertex < thirdVertex) frontEdgeIndex = currentFrontTri->getEdgeIndex(secondVertex, thirdVertex);
 			else frontEdgeIndex = currentFrontTri->getEdgeIndex(thirdVertex, secondVertex);
 			int adjacentTriIndex = currentFrontTri->adjacentTris[frontEdgeIndex];
-			if (indices[adjacentTriIndex] != -1) {
-				indices[adjacentTriIndex] = -1;
+			if (indicesPtr[adjacentTriIndex] != -1) {
+				indicesPtr[adjacentTriIndex] = -1;
 				numTriangles--;
 				AdjTriangle* adjacentTri = &triangles[adjacentTriIndex];
 				currentFrontTri = adjacentTri;
@@ -359,8 +359,8 @@ void Striper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numAdjac
 				if (firstVertex < secondVertex) backEdgeIndex = currentBackTri->getEdgeIndex(firstVertex, secondVertex);
 				else backEdgeIndex = currentBackTri->getEdgeIndex(secondVertex, firstVertex);
 				int adjacentTriIndex = currentBackTri->adjacentTris[backEdgeIndex];
-				if (indices[adjacentTriIndex] == -1) break;
-				indices[adjacentTriIndex] = -1;
+				if (indicesPtr[adjacentTriIndex] == -1) break;
+				indicesPtr[adjacentTriIndex] = -1;
 				numTriangles--;
 				AdjTriangle* adjacentTri = &triangles[adjacentTriIndex];
 				currentBackTri = adjacentTri;

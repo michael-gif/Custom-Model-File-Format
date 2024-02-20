@@ -85,9 +85,9 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
 	Timer::end(loadStart, "[FBX] Loaded model: ");
 
 	auto convertStart = Timer::begin();
-	//readFBXVertices(mesh, outMesh);
-	readFBXTriangles3(mesh, outMesh);
-	//readFBXUVs(mesh, outMesh);
+	readFBXVertices(mesh, outMesh);
+	readFBXTriangles2(mesh, outMesh);
+	readFBXUVs(mesh, outMesh);
 
 	scene->Destroy();
 	ioSettings->Destroy();
@@ -134,48 +134,8 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
 void FBXReader::readFBXTriangles2(FbxMesh* mesh, MeshObject* outMesh)
 {
 	std::cout << "[MODELMAKER] Converting..." << std::endl;
-#if _DEBUG
-	auto start = Timer::begin();
-#endif
-	int polygonCount = mesh->GetPolygonCount();
-	int* vertices = mesh->GetPolygonVertices();
-	int vertex1, vertex2, vertex3;
-	outMesh->edges.reserve(polygonCount * 3);
-	outMesh->edges.resize(polygonCount * 3);
-	uint32_t* edgePointer = outMesh->edges.data();
-	uint32_t edge1, edge2, edge3;
-	for (int i = 0; i < polygonCount * 3; i += 3) {
-		vertex1 = vertices[i];
-		vertex2 = vertices[i + 1];
-		vertex3 = vertices[i + 2];
-		if (vertex1 < vertex2)
-			edge1 = (vertex1 << 16) | vertex2;
-		else
-			edge1 = (vertex2 << 16) | vertex1;
-
-		if (vertex2 < vertex3)
-			edge2 = (vertex2 << 16) | vertex3;
-		else
-			edge2 = (vertex3 << 16) | vertex2;
-
-		if (vertex3 < vertex1)
-			edge3 = (vertex3 << 16) | vertex1;
-		else
-			edge3 = (vertex1 << 16) | vertex3;
-		edgePointer[i] = edge1;
-		edgePointer[i + 1] = edge2;
-		edgePointer[i + 2] = edge3;
-	}
-#if _DEBUG
-	Timer::end(start, "Read (" + std::to_string(polygonCount) + ") triangles: ");
-#endif
 	Striper striper;
 	striper.striper2(mesh, outMesh);
-}
-
-void FBXReader::readFBXTriangles3(FbxMesh* mesh, MeshObject* outMesh) {
-	Striper striper;
-	striper.striper4(mesh, outMesh);
 }
 
 /// <summary>

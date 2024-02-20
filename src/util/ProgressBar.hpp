@@ -39,7 +39,7 @@ public:
 				std::cout << progressChars[currentCompletionValue + i];
 			}
 			currentCompletionValue = completion;
-			if (currentCompletionValue == maxValue) {
+			if (currentCompletionValue == 40) {
 				std::cout << "0" << std::endl;
 				complete = true;
 			}

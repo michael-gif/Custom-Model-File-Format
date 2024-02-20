@@ -1,8 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <algorithm>
-#include <numeric>
-#include <cmath>
 #include <striper/RadixSorter.h>
 #include <util/Timer.hpp>
 

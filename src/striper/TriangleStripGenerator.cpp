@@ -155,8 +155,8 @@ void Striper::linkAdjacencies(std::vector<AdjTriangle>& adjacencies)
 	RadixSorter sorter;
 	std::vector<int> firstSortedIndices(edgeCount);
 	std::vector<int> secondSortedIndices(edgeCount);
-	sorter.sort(firstVertices, firstSortedIndices);
-	sorter.sort(secondVertices, firstSortedIndices, secondSortedIndices);
+	sorter.sortFast(firstVertices, firstSortedIndices);
+	sorter.sortFast(secondVertices, firstSortedIndices, secondSortedIndices);
 
 	// Read the list in sorted order, creating links between adjacent triangles
 	uint16_t lastVertex0 = firstVertices[secondSortedIndices[0]];

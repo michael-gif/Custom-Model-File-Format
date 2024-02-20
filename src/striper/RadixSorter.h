@@ -22,8 +22,10 @@ private:
 	int countArray[10];
 	void countSort(std::vector<uint16_t>& unsortedNumbers, std::vector<int>& inputIndices, std::vector<int>& outputIndices, int digit);
 public:
-	void sort(std::vector<uint16_t>& inputArray, std::vector<int>& sortedIndices);
-	void sort(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& sortedIndices);
+	void sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& sortedIndices);
+	void sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& sortedIndices);
+	void sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>& sortedIndices);
+	void sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& sortedIndices);
 };
 
 #endif

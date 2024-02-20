@@ -11,7 +11,6 @@ public:
 private:
 	static void readFBXVertices(FbxMesh* mesh, MeshObject* outMesh);
 	static void readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh);
-	static void readFBXTriangles2(FbxMesh* mesh, MeshObject* outMesh);
 	static void readFBXUVs(FbxMesh* mesh, MeshObject* outMesh);
 };
 

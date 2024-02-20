@@ -86,7 +86,7 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
 
 	auto convertStart = Timer::begin();
 	readFBXVertices(mesh, outMesh);
-	readFBXTriangles2(mesh, outMesh);
+	readFBXTriangles(mesh, outMesh);
 	readFBXUVs(mesh, outMesh);
 
 	scene->Destroy();
@@ -131,13 +131,6 @@ void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
 	std::cout << "[MODELMAKER] Converting..." << std::endl;
 	Striper striper;
 	striper.striper(mesh, outMesh);
-}
-
-void FBXReader::readFBXTriangles2(FbxMesh* mesh, MeshObject* outMesh)
-{
-	std::cout << "[MODELMAKER] Converting..." << std::endl;
-	Striper striper;
-	striper.striper2(mesh, outMesh);
 }
 
 /// <summary>

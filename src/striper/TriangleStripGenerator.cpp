@@ -8,113 +8,6 @@
 #include <util/ProgressBar.hpp>
 #include <striper/RadixSorter.h>
 
-int Striper::getRemainingVertexIndex(int v1, int v2, int a, int b, int c)
-{
-	if (v1 == a) {
-		if (v2 == b) return c;
-		if (v2 == c) return b;
-	}
-	else if (v1 == b) {
-		if (v2 == a) return c;
-		if (v2 == c) return a;
-	}
-	else if (v1 == c) {
-		if (v2 == b) return a;
-		if (v2 == a) return b;
-	}
-	return -1;
-}
-
-void Striper::striper(FbxMesh* inMesh, MeshObject* outMesh)
-{
-	int polygonCount;
-#if _DEBUG
-	auto readStart = Timer::begin();
-	polygonCount = inMesh->GetPolygonCount();
-	Timer::end(readStart, "Found (" + std::to_string(polygonCount) + ") triangles: ");
-#endif
-	auto start = Timer::begin();
-	polygonCount = inMesh->GetPolygonCount();
-	std::vector<int> triangles(polygonCount);
-	std::vector<uint16_t> currentStrip(3);
-
-	// array indexes are slow. use pointers instead
-	int* vertices = inMesh->GetPolygonVertices();
-	int* trianglesPtr = triangles.data();
-	uint16_t* stripPtr = currentStrip.data();
-
-	int stripNumber = 0;
-	int sizeondisk = 0;
-	int numTriangles = (int)triangles.size();
-	std::iota(triangles.begin(), triangles.end(), 0);
-
-	ProgressBar progressBar(polygonCount);
-	progressBar.start();
-
-
-	while (true) {
-		int firstTriangleIndex = trianglesPtr[0] * 3;
-		int frontX = vertices[firstTriangleIndex];
-		int frontY = vertices[firstTriangleIndex + 1];
-		int frontZ = vertices[firstTriangleIndex + 2];
-		int backX = frontX;
-		int backY = frontY;
-		stripPtr[0] = frontX;
-		stripPtr[1] = frontY;
-		stripPtr[2] = frontZ;
-		triangles.erase(triangles.begin());
-		numTriangles--;
-		while (true) {
-			int adjacentTris = 0;
-			for (int i = 0; i < numTriangles; ++i) {
-				int triangleIndex = trianglesPtr[i] * 3;
-				int v1 = vertices[triangleIndex];
-				int v2 = vertices[triangleIndex + 1];
-				int v3 = vertices[triangleIndex + 2];
-
-				int adjacentFront = getRemainingVertexIndex(frontY, frontZ, v1, v2, v3);
-				if (adjacentFront != -1) {
-					++adjacentTris;
-					frontY = frontZ;
-					frontZ = adjacentFront;
-					currentStrip.emplace_back((uint16_t)adjacentFront);
-
-					// erase triangle index from vector and update loop
-					triangles.erase(triangles.begin() + i);
-					--i; --numTriangles;
-					continue;
-				}
-				int adjacentBehind = getRemainingVertexIndex(backX, backY, v1, v2, v3);
-				if (adjacentBehind != -1) {
-					++adjacentTris;
-					backY = backX;
-					backX = adjacentBehind;
-					currentStrip.insert(currentStrip.begin(), (uint16_t)adjacentBehind);
-
-					// erase triangle index from vector and update loop
-					triangles.erase(triangles.begin() + i);
-					--i; --numTriangles;
-					continue;
-				}
-			}
-			if (!adjacentTris) break; // if no adjacent triangles were found, the strip has ended.
-		}
-#if _DEBUG
-		sizeondisk += 2 + ((int)currentStrip.size() * 2); // statistics
-#endif
-		outMesh->triangleStrips.emplace_back(currentStrip);
-		currentStrip.clear();
-		currentStrip.resize(3);
-		progressBar.updateProgress(polygonCount - (int)triangles.size());
-
-		if (triangles.empty()) break; // no more triangles mean we have created all the strips needed.
-	}
-	Timer::end(start, "[MODELMAKER] Generated (" + std::to_string(outMesh->triangleStrips.size()) + ") triangle strips: ");
-#if _DEBUG
-	std::cout << "Size on disk: " << sizeondisk << " bytes\n";
-#endif
-}
-
 void AdjTriangle::createEdges(int v1, int v2, int v3)
 {
 	vertices[0] = v1;
@@ -376,7 +269,7 @@ void Striper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numAdjac
 	Timer::end(start, "Found (" + std::to_string(strips.size()) + ") triangle strips: ");
 }
 
-void Striper::striper2(FbxMesh* inMesh, MeshObject* outMesh)
+void Striper::striper(FbxMesh* inMesh, MeshObject* outMesh)
 {
 #if _DEBUG
 	auto start = Timer::begin();

@@ -108,12 +108,14 @@ void FBXReader::readFBXVertices(FbxMesh* mesh, MeshObject* outMesh)
 #if _DEBUG
 	auto start = Timer::begin();
 #endif
+
 	FbxVector4* vertices = mesh->GetControlPoints();
 	int vertexCount = mesh->GetControlPointsCount();
 	std::cout << "[FBX] Detected mesh: '" << mesh->GetName() << "' with vertex count (" << vertexCount << ")" << std::endl;
 	for (int j = 0; j < vertexCount; ++j) {
 		outMesh->vertices.emplace_back(vertices[j][0], vertices[j][1], vertices[j][2]);
 	}
+
 #if _DEBUG
 	Timer::end(start, "Read (" + std::to_string(vertexCount) + ") vertices: ");
 #endif
@@ -148,6 +150,7 @@ void FBXReader::readFBXUVs(FbxMesh* mesh, MeshObject* outMesh)
 #if _DEBUG
 	auto start = Timer::begin();
 #endif
+
 	FbxStringList uvSetNames;
 	mesh->GetUVSetNames(uvSetNames);
 	FbxString uvMapName = uvSetNames[0];
@@ -159,15 +162,16 @@ void FBXReader::readFBXUVs(FbxMesh* mesh, MeshObject* outMesh)
 	for (int i = 0; i < mesh->GetPolygonCount(); ++i) {
 		int startIndex = i * 6;
 		mesh->GetPolygonVertexUV(i, 0, uvMapName, uvCoord, unmapped);
-		uvs[i + 0] = (float)uvCoord[0];
-		uvs[i + 1] = (float)uvCoord[1];
+		uvs[startIndex + 0] = (float)uvCoord[0];
+		uvs[startIndex + 1] = (float)uvCoord[1];
 		mesh->GetPolygonVertexUV(i, 1, uvMapName, uvCoord, unmapped);
-		uvs[i + 2] = (float)uvCoord[0];
-		uvs[i + 3] = (float)uvCoord[1];
+		uvs[startIndex + 2] = (float)uvCoord[0];
+		uvs[startIndex + 3] = (float)uvCoord[1];
 		mesh->GetPolygonVertexUV(i, 2, uvMapName, uvCoord, unmapped);
-		uvs[i + 4] = (float)uvCoord[0];
-		uvs[i + 5] = (float)uvCoord[1];
+		uvs[startIndex + 4] = (float)uvCoord[0];
+		uvs[startIndex + 5] = (float)uvCoord[1];
 	}
+
 #if _DEBUG
 	Timer::end(start, "Read (" + std::to_string(outMesh->uvs.size()) + ") uv's: ");
 #endif

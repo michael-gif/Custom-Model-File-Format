@@ -10,29 +10,36 @@
 #include <util/Timer.hpp>
 
 void ModelManager::compare(MeshObject* meshA, MeshObject* meshB) {
+    auto start = Timer::begin();
     //compare vertices
     int meshAVerts = (int)meshA->vertices.size();
     int meshBVerts = (int)meshB->vertices.size();
     std::cout << "Vertices: " << meshAVerts << "/" << meshBVerts << ", ";
     int numCorrect = 0;
+    MeshObject::Vertex* verticesa = meshA->vertices.data();
+    MeshObject::Vertex* verticesb = meshB->vertices.data();
     for (int i = 0; i < meshBVerts; ++i) {
-        MeshObject::Vertex a = meshA->vertices[i];
-        MeshObject::Vertex b = meshB->vertices[i];
-        if ((a.x == b.x) && (a.y == b.y) && (a.z == b.z)) numCorrect++;
+        MeshObject::Vertex* a = &verticesa[i];
+        MeshObject::Vertex* b = &verticesb[i];
+        if ((a->x == b->x) && (a->y == b->y) && (a->z == b->z)) numCorrect++;
     }
     std::cout << ((float)numCorrect / (float)meshBVerts) * 100 << "% accurate" << std::endl;
 
     // compare triangle strips
-    int meshATriStrips = (int)meshA->triangleStrips.size();
-    int meshBTriStrips = (int)meshB->triangleStrips.size();
-    std::cout << "Triangle strips: " << meshATriStrips << "/" << meshBTriStrips << ", ";
-    if (meshATriStrips != meshBTriStrips) return;
+    int meshATriStripsLength = (int)meshA->triangleStrips->size();
+    int meshBTriStripsLength = (int)meshB->triangleStrips->size();
+    std::cout << "Triangle strips: " << meshATriStripsLength << "/" << meshBTriStripsLength << ", ";
+    if (meshATriStripsLength != meshBTriStripsLength) return;
     int numIndices = 0;
     numCorrect = 0;
-    for (int i = 0; i < meshBTriStrips; i++) {
-        for (int j = 0; j < meshB->triangleStrips[i].size(); j++) {
+    std::vector<uint16_t>* meshAStrips = meshA->triangleStrips->data();
+    std::vector<uint16_t>* meshBStrips = meshB->triangleStrips->data();
+    for (int i = 0; i < meshBTriStripsLength; i++) {
+        uint16_t* astrip = meshAStrips[i].data();
+        uint16_t* bstrip = meshBStrips[i].data();
+        for (int j = 0; j < meshBStrips[i].size(); j++) {
             numIndices++;
-            if (meshA->triangleStrips[i][j] == meshB->triangleStrips[i][j]) numCorrect++;
+            if (astrip[j] == bstrip[j]) numCorrect++;
         }
     }
     std::cout << ((float)numCorrect / (float)numIndices) * 100 << "% accurate" << std::endl;
@@ -42,20 +49,26 @@ void ModelManager::compare(MeshObject* meshA, MeshObject* meshB) {
     int uvsB = (int)meshB->uvs.size();
     std::cout << "UV coords: " << uvsA << "/" << uvsB << ", ";
     numCorrect = 0;
+    float* meshAUVs = meshA->uvs.data();
+    float* meshBUVs = meshB->uvs.data();
+
     for (int i = 0; i < uvsB; i++) {
-        float b = (float)static_cast<uint16_t>(meshB->uvs[i] * 10000) / 10000;
-        if (meshA->uvs[i] == b) numCorrect++;
+        float b = (float)static_cast<uint16_t>(meshBUVs[i] * 10000) / 10000;
+        if (meshAUVs[i] == b) numCorrect++;
     }
     std::cout << ((float)numCorrect / (float)uvsB) * 100 << "% accurate" << std::endl;
 
     // compare vertex normals
     numCorrect = 0;
+    MeshObject::Vertex* verticesA = meshA->vertices.data();
+    MeshObject::Vertex* verticesB = meshB->vertices.data();
     for (int i = 0; i < meshB->vertices.size(); ++i) {
-        MeshObject::Normal normalA = meshA->vertices[i].normal;
-        MeshObject::Normal normalB = meshB->vertices[i].normal;
-        if (normalA.x == normalB.x && normalA.y == normalB.y && normalA.z == normalB.z) numCorrect++;
+        MeshObject::Normal* normalA = &verticesA[i].normal;
+        MeshObject::Normal* normalB = &verticesB[i].normal;
+        if ((normalA->x == normalB->x) && (normalA->y == normalB->y) && (normalA->z == normalB->z)) numCorrect++;
     }
     std::cout << "Normals: " << ((float)numCorrect / (float)meshA->vertices.size()) * 100 << "% accurate" << std::endl;
+    Timer::end(start, "Comparison: ");
 }
 
 /// <summary>
@@ -125,8 +138,8 @@ void ModelManager::readTriangleStrips(std::ifstream& file, MeshObject* mesh)
     std::vector<char> vertexIndexBuffer;
     file.read(metadataBuffer, sizeof(metadataBuffer));
     uint16_t numTriStrips = *reinterpret_cast<uint16_t*>(&metadataBuffer);
-    mesh->triangleStrips.resize(numTriStrips);
-    std::vector<uint16_t>* triStrips = mesh->triangleStrips.data();
+    mesh->triangleStrips->resize(numTriStrips);
+    std::vector<uint16_t>* triStrips = mesh->triangleStrips->data();
     for (int i = 0; i < numTriStrips; ++i) {
         file.read(stripSizeBuffer, sizeof(stripSizeBuffer));
         uint16_t stripSize = *reinterpret_cast<uint16_t*>(&stripSizeBuffer);
@@ -135,11 +148,10 @@ void ModelManager::readTriangleStrips(std::ifstream& file, MeshObject* mesh)
         uint16_t* strip = triStrips[i].data();
         vertexIndexBuffer.resize(numBytes);
         file.read(vertexIndexBuffer.data(), numBytes);
-        std::memcpy(strip, vertexIndexBuffer.data(), numBytes);
-
+        memcpy(strip, vertexIndexBuffer.data(), numBytes);
     }
 #if _DEBUG
-    Timer::end(start, "Read (" + std::to_string(mesh->triangleStrips.size()) + ") triangle strips: ");
+    Timer::end(start, "Read (" + std::to_string(mesh->triangleStrips->size()) + ") triangle strips: ");
 #endif
 }
 
@@ -264,11 +276,11 @@ void ModelManager::writeTriangleStrips(MeshObject* mesh, std::ofstream& file)
 #if _DEBUG
     auto start = Timer::begin();
 #endif
-    int numTriStrips = (int)mesh->triangleStrips.size();
+    int numTriStrips = (int)mesh->triangleStrips->size();
     file.write(reinterpret_cast<const char*>(&numTriStrips), 2);
     int numBytes = 0;
     for (int i = 0; i < numTriStrips; ++i) {
-        std::vector<uint16_t> strip = mesh->triangleStrips[i];
+        std::vector<uint16_t> strip = mesh->triangleStrips->data()[i];
         uint16_t stripSize = (uint16_t)strip.size();
         int numStripBytes = 2 * stripSize;
         numBytes += 2 + (numStripBytes);
@@ -277,7 +289,7 @@ void ModelManager::writeTriangleStrips(MeshObject* mesh, std::ofstream& file)
     }
     mesh->sizeondisk += 2 + numBytes;
 #if _DEBUG
-    Timer::end(start, "Wrote (" + std::to_string(mesh->triangleStrips.size()) + ") triangle strips (" + std::to_string(numBytes) + " bytes): ");
+    Timer::end(start, "Wrote (" + std::to_string(mesh->triangleStrips->size()) + ") triangle strips (" + std::to_string(numBytes) + " bytes): ");
 #endif
 }
 

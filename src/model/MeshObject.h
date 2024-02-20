@@ -6,6 +6,12 @@
 
 class MeshObject {
 public:
+    MeshObject() {
+        triangleStrips = new std::vector<std::vector<uint16_t>>();
+    }
+    ~MeshObject() {
+        delete triangleStrips;
+    }
     int sizeondisk = 0;
 
     struct Normal {
@@ -63,7 +69,7 @@ public:
     std::vector<Vertex> vertices;
     std::vector<uint16_t> vertexIndices;
     std::vector<uint32_t> edges;
-    std::vector<std::vector<uint16_t>> triangleStrips;
+    std::vector<std::vector<uint16_t>>* triangleStrips;
     std::vector<float> uvs;
     std::vector<std::vector<float>> normalStrips;
 };

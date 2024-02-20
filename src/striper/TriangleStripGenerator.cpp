@@ -102,14 +102,14 @@ void Striper::striper(FbxMesh* inMesh, MeshObject* outMesh)
 #if _DEBUG
 		sizeondisk += 2 + ((int)currentStrip.size() * 2); // statistics
 #endif
-		outMesh->triangleStrips.emplace_back(currentStrip);
+		outMesh->triangleStrips->emplace_back(currentStrip);
 		currentStrip.clear();
 		currentStrip.resize(3);
 		progressBar.updateProgress(polygonCount - (int)triangles.size());
 
 		if (triangles.empty()) break; // no more triangles mean we have created all the strips needed.
 	}
-	Timer::end(start, "[MODELMAKER] Generated (" + std::to_string(outMesh->triangleStrips.size()) + ") triangle strips: ");
+	Timer::end(start, "[MODELMAKER] Generated (" + std::to_string(outMesh->triangleStrips->size()) + ") triangle strips: ");
 #if _DEBUG
 	std::cout << "Size on disk: " << sizeondisk << " bytes\n";
 #endif
@@ -308,12 +308,11 @@ void Striper::linkAdjacencies(std::vector<AdjTriangle>* adjacencies)
 #endif
 }
 
-void Striper::generateStrips(std::vector<AdjTriangle>* adjacencies, int numAdjacencies, std::vector<std::vector<uint16_t>>& strips)
+void Striper::generateStrips(std::vector<AdjTriangle>* adjacencies, int numAdjacencies, std::vector<std::vector<uint16_t>>* strips)
 {
 	auto start = Timer::begin();
-	std::vector<int> indices(numAdjacencies);
-	std::iota(indices.begin(), indices.end(), 0);
-	int* indicesPtr = indices.data();
+	int* indices = new int[numAdjacencies];
+	for (int i = 0; i < numAdjacencies; i++) indices[i] = i;
 	int numTriangles = numAdjacencies;
 	AdjTriangle* triangles = adjacencies->data();
 
@@ -322,22 +321,22 @@ void Striper::generateStrips(std::vector<AdjTriangle>* adjacencies, int numAdjac
 
 	int lastTriangleIndex = 0;
 	while (numTriangles > 0) {
-		strips.emplace_back();
-		std::vector<uint16_t>* strip = &strips.back();
+		strips->emplace_back();
+		std::vector<uint16_t>* strip = &strips->back();
 		strip->resize(3);
 		uint16_t* stripData = strip->data();
 		int nextTriangleIndex = -1;
 		for (int i = lastTriangleIndex; i < numAdjacencies; i++) {
-			if (indicesPtr[i] != -1) {
+			if (indices[i] != -1) {
 				nextTriangleIndex = i;
 				lastTriangleIndex = i + 1;
 				break;
 			}
 		}
-		AdjTriangle* firstTri = &triangles[indicesPtr[nextTriangleIndex]];
+		AdjTriangle* firstTri = &triangles[indices[nextTriangleIndex]];
 		AdjTriangle* currentFrontTri = firstTri;
 		AdjTriangle* currentBackTri = firstTri;
-		indicesPtr[nextTriangleIndex] = -1;
+		indices[nextTriangleIndex] = -1;
 		numTriangles--;
 		memcpy(stripData, firstTri->vertices, 3 * sizeof(uint16_t)); // move current triangle vertices into start of strip
 		uint16_t firstVertex = stripData[0];
@@ -348,8 +347,8 @@ void Striper::generateStrips(std::vector<AdjTriangle>* adjacencies, int numAdjac
 			if (secondVertex < thirdVertex) frontEdgeIndex = currentFrontTri->getEdgeIndex(secondVertex, thirdVertex);
 			else frontEdgeIndex = currentFrontTri->getEdgeIndex(thirdVertex, secondVertex);
 			int adjacentTriIndex = currentFrontTri->adjacentTris[frontEdgeIndex];
-			if (indicesPtr[adjacentTriIndex] != -1) {
-				indicesPtr[adjacentTriIndex] = -1;
+			if (indices[adjacentTriIndex] != -1) {
+				indices[adjacentTriIndex] = -1;
 				numTriangles--;
 				AdjTriangle* adjacentTri = &triangles[adjacentTriIndex];
 				currentFrontTri = adjacentTri;
@@ -366,8 +365,8 @@ void Striper::generateStrips(std::vector<AdjTriangle>* adjacencies, int numAdjac
 				if (firstVertex < secondVertex) backEdgeIndex = currentBackTri->getEdgeIndex(firstVertex, secondVertex);
 				else backEdgeIndex = currentBackTri->getEdgeIndex(secondVertex, firstVertex);
 				int adjacentTriIndex = currentBackTri->adjacentTris[backEdgeIndex];
-				if (indicesPtr[adjacentTriIndex] == -1) break;
-				indicesPtr[adjacentTriIndex] = -1;
+				if (indices[adjacentTriIndex] == -1) break;
+				indices[adjacentTriIndex] = -1;
 				numTriangles--;
 				AdjTriangle* adjacentTri = &triangles[adjacentTriIndex];
 				currentBackTri = adjacentTri;
@@ -380,7 +379,8 @@ void Striper::generateStrips(std::vector<AdjTriangle>* adjacencies, int numAdjac
 		}
 		progressBar.updateProgress(numAdjacencies - numTriangles);
 	}
-	Timer::end(start, "Found (" + std::to_string(strips.size()) + ") triangle strips: ");
+	delete[] indices;
+	Timer::end(start, "Found (" + std::to_string(strips->size()) + ") triangle strips: ");
 }
 
 void Striper::striper2(FbxMesh* inMesh, MeshObject* outMesh)

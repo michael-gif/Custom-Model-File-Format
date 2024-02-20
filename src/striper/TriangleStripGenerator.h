@@ -25,7 +25,7 @@ private:
 	void createAdjacencies(std::vector<AdjTriangle>* adjacencies, int* vertices);
 	void linkAdjacencies(std::vector<AdjTriangle>* adjacencies);
 	void updateLink(AdjTriangle* triangles, int firstTri, int secondTri, uint16_t vertex0, uint16_t vertex1);
-	void generateStrips(std::vector<AdjTriangle>* adjacencies, int numAdjacencies, std::vector<std::vector<uint16_t>>& strips);
+	void generateStrips(std::vector<AdjTriangle>* adjacencies, int numAdjacencies, std::vector<std::vector<uint16_t>>* strips);
 public:
 	void striper(FbxMesh* inMesh, MeshObject* outMesh);
 	void striper2(FbxMesh* inMesh, MeshObject* outMesh);

@@ -105,7 +105,7 @@ void Striper::striper(FbxMesh* inMesh, MeshObject* outMesh)
 		outMesh->triangleStrips.emplace_back(currentStrip);
 		currentStrip.clear();
 		currentStrip.resize(3);
-		progressBar.updateProgress(polygonCount - triangles.size());
+		progressBar.updateProgress(polygonCount - (int)triangles.size());
 
 		if (triangles.empty()) break; // no more triangles mean we have created all the strips needed.
 	}
@@ -154,6 +154,7 @@ int AdjTriangle::getEdgeIndex(uint16_t v1, uint16_t v2)
 	if (v1 == e1->v1 && v2 == e1->v2) return 1;
 	Edge* e2 = &edges[2];
 	if (v1 == e2->v1 && v2 == e2->v2) return 2;
+	return -1;
 }
 
 int AdjTriangle::getOppositeVertex(uint16_t v1, uint16_t v2)
@@ -161,20 +162,16 @@ int AdjTriangle::getOppositeVertex(uint16_t v1, uint16_t v2)
 	if (v1 == vertices[0]) {
 		if (v2 == vertices[1]) return vertices[2];
 		if (v2 == vertices[2]) return vertices[1];
-	} else if (v1 == vertices[1]) {
+	}
+	else if (v1 == vertices[1]) {
 		if (v2 == vertices[2]) return vertices[0];
 		if (v2 == vertices[0]) return vertices[2];
-	} else if (v1 == vertices[2]) {
+	}
+	else if (v1 == vertices[2]) {
 		if (v2 == vertices[0]) return vertices[1];
 		if (v2 == vertices[1]) return vertices[0];
 	}
-}
-
-int AdjTriangle::getOppositeVertex(int edgeIndex)
-{
-	if (edgeIndex == 0) return vertices[2];
-	if (edgeIndex == 1) return vertices[0];
-	if (edgeIndex == 2) return vertices[1];
+	return -1;
 }
 
 /// <summary>
@@ -240,7 +237,7 @@ void Striper::linkAdjacencies(std::vector<AdjTriangle>* adjacencies)
 	auto start = Timer::begin();
 #endif
 
-	int edgeCount = adjacencies->size() * 3;
+	int edgeCount = (int)adjacencies->size() * 3;
 	int* faceIndices = new int[edgeCount]; // every edge has an associated face
 	uint16_t* firstVertices = new uint16_t[edgeCount];
 	uint16_t* secondVertices = new uint16_t[edgeCount];

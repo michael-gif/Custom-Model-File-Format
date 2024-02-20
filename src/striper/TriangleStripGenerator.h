@@ -17,7 +17,6 @@ struct AdjTriangle {
 	void createEdges(int v1, int v2, int v3);
 	int getEdgeIndex(uint16_t v1, uint16_t v2);
 	int getOppositeVertex(uint16_t v1, uint16_t v2);
-	int getOppositeVertex(int edgeIndex);
 };
 
 class Striper {

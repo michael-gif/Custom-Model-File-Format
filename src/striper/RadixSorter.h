@@ -20,10 +20,10 @@ private:
 		1000000000
 	};
 	int countArray[10];
-	void countSort(int numElements, uint16_t* unsortedNumbers, int* inputIndices, int* outputIndices, int digit);
+	void countSort(std::vector<uint16_t>& unsortedNumbers, std::vector<int>& inputIndices, std::vector<int>& outputIndices, int digit);
 public:
-	void sort(int edgeCount, uint16_t* inputArray, int* sortedIndices);
-	void sort(int edgeCount, uint16_t* inputArray, int* inputIndices, int* sortedIndices);
+	void sort(std::vector<uint16_t>& inputArray, std::vector<int>& sortedIndices);
+	void sort(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& sortedIndices);
 };
 
 #endif

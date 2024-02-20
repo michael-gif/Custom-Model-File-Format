@@ -102,14 +102,14 @@ void Striper::striper(FbxMesh* inMesh, MeshObject* outMesh)
 #if _DEBUG
 		sizeondisk += 2 + ((int)currentStrip.size() * 2); // statistics
 #endif
-		outMesh->triangleStrips->emplace_back(currentStrip);
+		outMesh->triangleStrips.emplace_back(currentStrip);
 		currentStrip.clear();
 		currentStrip.resize(3);
 		progressBar.updateProgress(polygonCount - (int)triangles.size());
 
 		if (triangles.empty()) break; // no more triangles mean we have created all the strips needed.
 	}
-	Timer::end(start, "[MODELMAKER] Generated (" + std::to_string(outMesh->triangleStrips->size()) + ") triangle strips: ");
+	Timer::end(start, "[MODELMAKER] Generated (" + std::to_string(outMesh->triangleStrips.size()) + ") triangle strips: ");
 #if _DEBUG
 	std::cout << "Size on disk: " << sizeondisk << " bytes\n";
 #endif
@@ -179,14 +179,14 @@ int AdjTriangle::getOppositeVertex(uint16_t v1, uint16_t v2)
 /// </summary>
 /// <param name="adjacencies">Empty adjacency vector to populate</param>
 /// <param name="vertices">Vertex array to create triangles from</param>
-void Striper::createAdjacencies(std::vector<AdjTriangle>* adjacencies, int* vertices)
+void Striper::createAdjacencies(std::vector<AdjTriangle>& adjacencies, int* vertices)
 {
 #if _DEBUG
 	auto start = Timer::begin();
 #endif
 
-	AdjTriangle* adjacencyPtr = adjacencies->data();
-	for (int i = 0; i < adjacencies->size(); i++) {
+	AdjTriangle* adjacencyPtr = adjacencies.data();
+	for (int i = 0; i < adjacencies.size(); i++) {
 		int vertexIndex = i * 3;
 		int v1 = vertices[vertexIndex];
 		int v2 = vertices[vertexIndex + 1];
@@ -231,19 +231,19 @@ void Striper::updateLink(AdjTriangle* triangles, int firstTri, int secondTri, ui
 /// </summary>
 /// <param name="adjacencies"></param>
 /// <param name="triangleCount"></param>
-void Striper::linkAdjacencies(std::vector<AdjTriangle>* adjacencies)
+void Striper::linkAdjacencies(std::vector<AdjTriangle>& adjacencies)
 {
 #if _DEBUG
 	auto start = Timer::begin();
 #endif
 
-	int edgeCount = (int)adjacencies->size() * 3;
-	int* faceIndices = new int[edgeCount]; // every edge has an associated face
-	uint16_t* firstVertices = new uint16_t[edgeCount];
-	uint16_t* secondVertices = new uint16_t[edgeCount];
-	AdjTriangle* adjacencyPtr = adjacencies->data();
+	int edgeCount = (int)adjacencies.size() * 3;
+	std::vector<int> faceIndices(edgeCount); // every edge has an associated face
+	std::vector<uint16_t> firstVertices(edgeCount);
+	std::vector<uint16_t> secondVertices(edgeCount);
+	AdjTriangle* adjacencyPtr = adjacencies.data();
 
-	for (int i = 0; i < adjacencies->size(); i++) {
+	for (int i = 0; i < adjacencies.size(); i++) {
 		int edgeIndex = i * 3;
 		faceIndices[edgeIndex] = i;
 		faceIndices[edgeIndex + 1] = i;
@@ -260,10 +260,10 @@ void Striper::linkAdjacencies(std::vector<AdjTriangle>* adjacencies)
 	
 	//Sort the edges by first vertex then second vertex, ensuring that adjacent edges are next to each other
 	RadixSorter sorter;
-	int* firstSortedIndices = new int[edgeCount];
-	int* secondSortedIndices = new int[edgeCount];
-	sorter.sort(edgeCount, firstVertices, firstSortedIndices);
-	sorter.sort(edgeCount, secondVertices, firstSortedIndices, secondSortedIndices);
+	std::vector<int> firstSortedIndices(edgeCount);
+	std::vector<int> secondSortedIndices(edgeCount);
+	sorter.sort(firstVertices, firstSortedIndices);
+	sorter.sort(secondVertices, firstSortedIndices, secondSortedIndices);
 
 	// Read the list in sorted order, creating links between adjacent triangles
 	uint16_t lastVertex0 = firstVertices[secondSortedIndices[0]];
@@ -290,12 +290,6 @@ void Striper::linkAdjacencies(std::vector<AdjTriangle>* adjacencies)
 	}
 	if (count == 2) updateLink(adjacencyPtr, tmpBuffer[0], tmpBuffer[1], lastVertex0, lastVertex1);
 
-	delete[] faceIndices;
-	delete[] firstVertices;
-	delete[] secondVertices;
-	delete[] firstSortedIndices;
-	delete[] secondSortedIndices;
-
 #if _DEBUG
 	int memoryUsage = 0;
 	memoryUsage += edgeCount * sizeof(int);
@@ -308,21 +302,21 @@ void Striper::linkAdjacencies(std::vector<AdjTriangle>* adjacencies)
 #endif
 }
 
-void Striper::generateStrips(std::vector<AdjTriangle>* adjacencies, int numAdjacencies, std::vector<std::vector<uint16_t>>* strips)
+void Striper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numAdjacencies, std::vector<std::vector<uint16_t>>& strips)
 {
 	auto start = Timer::begin();
 	int* indices = new int[numAdjacencies];
 	for (int i = 0; i < numAdjacencies; i++) indices[i] = i;
 	int numTriangles = numAdjacencies;
-	AdjTriangle* triangles = adjacencies->data();
+	AdjTriangle* triangles = adjacencies.data();
 
 	ProgressBar progressBar(numAdjacencies);
 	progressBar.start();
 
 	int lastTriangleIndex = 0;
 	while (numTriangles > 0) {
-		strips->emplace_back();
-		std::vector<uint16_t>* strip = &strips->back();
+		strips.emplace_back();
+		std::vector<uint16_t>* strip = &strips.back();
 		strip->resize(3);
 		uint16_t* stripData = strip->data();
 		int nextTriangleIndex = -1;
@@ -379,8 +373,7 @@ void Striper::generateStrips(std::vector<AdjTriangle>* adjacencies, int numAdjac
 		}
 		progressBar.updateProgress(numAdjacencies - numTriangles);
 	}
-	delete[] indices;
-	Timer::end(start, "Found (" + std::to_string(strips->size()) + ") triangle strips: ");
+	Timer::end(start, "Found (" + std::to_string(strips.size()) + ") triangle strips: ");
 }
 
 void Striper::striper2(FbxMesh* inMesh, MeshObject* outMesh)
@@ -394,11 +387,10 @@ void Striper::striper2(FbxMesh* inMesh, MeshObject* outMesh)
 #endif
 
 	int* vertices = inMesh->GetPolygonVertices();
-	auto adjacencies = new std::vector<AdjTriangle>(triangleCount); // vector is allocated on heap because there may be tens of thousands of triangles
+	std::vector<AdjTriangle> adjacencies(triangleCount);
 	createAdjacencies(adjacencies, vertices);
 	linkAdjacencies(adjacencies);
 	generateStrips(adjacencies, triangleCount, outMesh->triangleStrips);
-	delete adjacencies;
 
 #if _DEBUG
 	int memoryUsage = 0;

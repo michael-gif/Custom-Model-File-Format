@@ -1,43 +1,42 @@
 #include <iostream>
+#include <numeric>
 #include <vector>
 #include <striper/RadixSorter.h>
 #include <util/Timer.hpp>
 
-void RadixSorter::sort(int edgeCount, uint16_t* inputArray, int* outputIndices)
+void RadixSorter::sort(std::vector<uint16_t>& inputArray, std::vector<int>& outputIndices)
 {
-	uint16_t maxValue = *std::max_element(inputArray, inputArray + edgeCount);
+	uint16_t maxValue = *std::max_element(inputArray.begin(), inputArray.end());
 	int digit = 0;
 	while (maxValue != 0) {
 		maxValue = maxValue / 10;
 		++digit;
 	}
-	int* inputIndices = new int[edgeCount];
-	for (int i = 0; i < edgeCount; i++) {
-		inputIndices[i] = i;
-	}
+	int numElements = inputArray.size();
+	std::vector<int> inputIndices(numElements);
+	std::iota(inputIndices.begin(), inputIndices.end(), 0);
 	for (int i = 0; i < digit; i++) {
-		countSort(edgeCount, inputArray, inputIndices, outputIndices, i + 1);
+		countSort(inputArray, inputIndices, outputIndices, i + 1);
 		if (i == digit - 1) break;
-		memcpy(inputIndices, outputIndices, edgeCount * 4);
-		memset(outputIndices, 0, edgeCount * 4);
-
+		memcpy(inputIndices.data(), outputIndices.data(), numElements * 4);
+		memset(outputIndices.data(), 0, numElements * 4);
 	}
-	delete[] inputIndices;
 }
 
-void RadixSorter::sort(int edgeCount, uint16_t* inputArray, int* inputIndices, int* outputIndices)
+void RadixSorter::sort(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& outputIndices)
 {
-	uint16_t maxValue = *std::max_element(inputArray, inputArray + edgeCount);
+	uint16_t maxValue = *std::max_element(inputArray.begin(), inputArray.end());
 	int digit = 0;
 	while (maxValue != 0) {
 		maxValue = maxValue / 10;
 		++digit;
 	}
+	int numElements = inputArray.size();
 	for (int i = 0; i < digit; i++) {
-		countSort(edgeCount, inputArray, inputIndices, outputIndices, i + 1);
+		countSort(inputArray, inputIndices, outputIndices, i + 1);
 		if (i == digit - 1) break;
-		memcpy(inputIndices, outputIndices, edgeCount * 4);
-		memset(outputIndices, 0, edgeCount * 4);
+		memcpy(inputIndices.data(), outputIndices.data(), numElements * 4);
+		memset(outputIndices.data(), 0, numElements * 4);
 	}
 }
 
@@ -46,8 +45,9 @@ void RadixSorter::sort(int edgeCount, uint16_t* inputArray, int* inputIndices, i
 /// </summary>
 /// <param name="unsortedNumbers"></param>
 /// <param name="sortedIndices"></param>
-void RadixSorter::countSort(int numElements, uint16_t* inputArray, int* inputIndices, int* outputIndices, int digit)
+void RadixSorter::countSort(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& outputIndices, int digit)
 {
+	int numElements = inputArray.size();
 	singleDigits.reserve(numElements);
 	uint8_t* singlePtr = singleDigits.data();
 	int divisor = divisors[digit - 1];

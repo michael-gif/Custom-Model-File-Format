@@ -1,12 +1,7 @@
 #include <iostream>
-#include <random>
-#include <fstream>
-#include <vector>
-#include <string>
 #include <model/MeshObject.h>
 #include <model/FBXReader.h>
 #include <model/ModelManager.h>
-#include <striper/TriangleStripGenerator.h>
 #include <util/Timer.hpp>
 
 /// <summary>

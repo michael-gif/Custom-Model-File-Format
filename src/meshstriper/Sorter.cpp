@@ -1,11 +1,11 @@
 #include <iostream>
 #include <numeric>
 #include <vector>
-#include <striper/RadixSorter.h>
+#include <meshstriper/Sorter.h>
 #include <util/Timer.hpp>
 #include <map>
 
-void RadixSorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& outputIndices)
+void Sorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& outputIndices)
 {
 	uint16_t maxValue = *std::max_element(inputArray.begin(), inputArray.end());
 	int numElements = (int)inputArray.size();
@@ -35,7 +35,7 @@ void RadixSorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& 
 	}
 }
 
-void RadixSorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& outputIndices)
+void Sorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& outputIndices)
 {
 	uint16_t maxValue = *std::max_element(inputArray.begin(), inputArray.end());
 	int numElements = (int)inputArray.size();
@@ -63,7 +63,7 @@ void RadixSorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& 
 	}
 }
 
-void RadixSorter::sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>& outputIndices)
+void Sorter::sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>& outputIndices)
 {
 	uint16_t maxValue = *std::max_element(inputArray.begin(), inputArray.end());
 	int digit = 0;
@@ -82,7 +82,7 @@ void RadixSorter::sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>&
 	}
 }
 
-void RadixSorter::sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& outputIndices)
+void Sorter::sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& outputIndices)
 {
 	uint16_t maxValue = *std::max_element(inputArray.begin(), inputArray.end());
 	int digit = 0;
@@ -99,12 +99,7 @@ void RadixSorter::sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>&
 	}
 }
 
-/// <summary>
-/// Sort the unsortedNumbers and produce an array of sorted indexes into the unsortedNumbers array
-/// </summary>
-/// <param name="unsortedNumbers"></param>
-/// <param name="sortedIndices"></param>
-void RadixSorter::countSort(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& outputIndices, int digit)
+void Sorter::countSort(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& outputIndices, int digit)
 {
 	int numElements = (int)inputArray.size();
 	singleDigits.reserve(numElements);

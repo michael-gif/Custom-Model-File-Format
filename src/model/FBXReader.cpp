@@ -5,18 +5,9 @@
 #include <fbxsdk.h>
 #include <model/FBXReader.h>
 #include <model/MeshObject.h>
+#include <meshstriper/MeshStriper.h>
 #include <util/Timer.hpp>
-#include <striper/TriangleStripGenerator.h>
 
-/// <summary>
-/// Read an FBX file
-/// FBX file must have only one object which contains one mesh
-/// This only works with vertices that use whole numbers between -32768 and 32768.
-/// If the file contains bigger numbers, or decimals vertices, you can kiss those numbers goodbye.
-/// Reason is, each vertex position is stored as 2 bytes in a .m file, which reduces file size, so signed ints work best, as long as they are within 2 bytes.
-/// </summary>
-/// <param name="path"></param>
-/// <returns>Read success</returns>
 bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
 {
 #if _DEBUG
@@ -98,11 +89,6 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
 	return true;
 }
 
-/// <summary>
-/// Loop through vertices and stick 'em into the vertex vector
-/// </summary>
-/// <param name="mesh"></param>
-/// <param name="outVertices"></param>
 void FBXReader::readFBXVertices(FbxMesh* mesh, MeshObject* outMesh)
 {
 #if _DEBUG
@@ -121,23 +107,13 @@ void FBXReader::readFBXVertices(FbxMesh* mesh, MeshObject* outMesh)
 #endif
 }
 
-/// <summary>
-/// Loop through the polygons and generate triangle strips, uv strips and a normal list
-/// </summary>
-/// <param name="mesh"></param>
-/// <param name="outTriangles"></param>
 void FBXReader::readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh)
 {
 	std::cout << "[MODELMAKER] Converting..." << std::endl;
-	Striper striper;
+	MeshStriper striper;
 	striper.striper(mesh, outMesh);
 }
 
-/// <summary>
-/// Read uv coords for each triangle.
-/// </summary>
-/// <param name="mesh"></param>
-/// <param name="outMesh"></param>
 void FBXReader::readFBXUVs(FbxMesh* mesh, MeshObject* outMesh)
 {
 #if _DEBUG

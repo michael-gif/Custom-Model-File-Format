@@ -3,10 +3,10 @@
 #include <fbxsdk.h>
 #include <iomanip>
 #include <model/MeshObject.h>
-#include <striper/TriangleStripGenerator.h>
+#include <meshstriper/MeshStriper.h>
+#include <meshstriper/Sorter.h>
 #include <util/Timer.hpp>
 #include <util/ProgressBar.hpp>
-#include <striper/RadixSorter.h>
 
 void AdjTriangle::createEdges(int v1, int v2, int v3)
 {
@@ -39,6 +39,7 @@ void AdjTriangle::createEdges(int v1, int v2, int v3)
 	}
 }
 
+
 int AdjTriangle::getEdgeIndex(uint16_t v1, uint16_t v2)
 {
 	Edge* e0 = &edges[0];
@@ -49,6 +50,7 @@ int AdjTriangle::getEdgeIndex(uint16_t v1, uint16_t v2)
 	if (v1 == e2->v1 && v2 == e2->v2) return 2;
 	return -1;
 }
+
 
 int AdjTriangle::getOppositeVertex(uint16_t v1, uint16_t v2)
 {
@@ -67,12 +69,8 @@ int AdjTriangle::getOppositeVertex(uint16_t v1, uint16_t v2)
 	return -1;
 }
 
-/// <summary>
-/// For each triangle, create an AdjTriangle struct with 3 edges
-/// </summary>
-/// <param name="adjacencies">Empty adjacency vector to populate</param>
-/// <param name="vertices">Vertex array to create triangles from</param>
-void Striper::createAdjacencies(std::vector<AdjTriangle>& adjacencies, int* vertices)
+
+void MeshStriper::createAdjacencies(std::vector<AdjTriangle>& adjacencies, int* vertices)
 {
 #if _DEBUG
 	auto start = Timer::begin();
@@ -92,19 +90,8 @@ void Striper::createAdjacencies(std::vector<AdjTriangle>& adjacencies, int* vert
 #endif
 }
 
-/// <summary>
-/// Create a link between two given triangles by updating their respective adjacency structures.
-/// Each triangle has an array of adjacent triangles, and an array of edges. Each index of the adjacent triangles array maps to
-/// the indexes of the edges array. If a triangle has an adjacent triangle at index 0, then the adjacent triangle shares the edge
-/// at index 0 of the edges array.
-/// </summary>
-/// <param name="triangles"></param>
-/// <param name="firstTri"></param>
-/// <param name="secondTri"></param>
-/// <param name="vertex0"></param>
-/// <param name="vertex1"></param>
-/// <returns></returns>
-void Striper::updateLink(AdjTriangle* triangles, int firstTri, int secondTri, uint16_t vertex0, uint16_t vertex1)
+
+void MeshStriper::updateLink(AdjTriangle* triangles, int firstTri, int secondTri, uint16_t vertex0, uint16_t vertex1)
 {
 	AdjTriangle* tri0 = &triangles[firstTri];
 	AdjTriangle* tri1 = &triangles[secondTri];
@@ -114,17 +101,8 @@ void Striper::updateLink(AdjTriangle* triangles, int firstTri, int secondTri, ui
 	tri1->adjacentTris[tri1EdgeIndex] = firstTri;
 }
 
-/// <summary>
-/// Link the adjacency structures by creating a list of all edges in the mesh and sorting by the second vertex of each edge.
-/// This creates a list of indexes, each index leading to an element in the unsorted list.
-/// For example, if the unsorted edges are [4, 8, 2, 6, 3, 2], and the sorted indexes are [2, 5, 4, 0, 3, 1],
-/// then indexing the unsorted edges using the sorted index array would produce [2, 2, 3, 4, 6, 8].
-/// The sorted index array can then be used to obtain the corresponding first vertex for every second vertex, and the corresponding face for
-/// every second vertex. By looping through the arrays you can quickly identify matching edges and create the corresponding links between triangles.
-/// </summary>
-/// <param name="adjacencies"></param>
-/// <param name="triangleCount"></param>
-void Striper::linkAdjacencies(std::vector<AdjTriangle>& adjacencies)
+
+void MeshStriper::linkAdjacencies(std::vector<AdjTriangle>& adjacencies)
 {
 #if _DEBUG
 	auto start = Timer::begin();
@@ -152,7 +130,7 @@ void Striper::linkAdjacencies(std::vector<AdjTriangle>& adjacencies)
 	}
 	
 	//Sort the edges by first vertex then second vertex, ensuring that adjacent edges are next to each other
-	RadixSorter sorter;
+	Sorter sorter;
 	std::vector<int> firstSortedIndices(edgeCount);
 	std::vector<int> secondSortedIndices(edgeCount);
 	sorter.sortFast(firstVertices, firstSortedIndices);
@@ -195,7 +173,8 @@ void Striper::linkAdjacencies(std::vector<AdjTriangle>& adjacencies)
 #endif
 }
 
-void Striper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numAdjacencies, std::vector<std::vector<uint16_t>>& strips)
+
+void MeshStriper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numAdjacencies, std::vector<std::vector<uint16_t>>& strips)
 {
 	auto start = Timer::begin();
 	std::vector<int> indices(numAdjacencies);
@@ -269,7 +248,8 @@ void Striper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numAdjac
 	Timer::end(start, "Found (" + std::to_string(strips.size()) + ") triangle strips: ");
 }
 
-void Striper::striper(FbxMesh* inMesh, MeshObject* outMesh)
+
+void MeshStriper::striper(FbxMesh* inMesh, MeshObject* outMesh)
 {
 #if _DEBUG
 	auto start = Timer::begin();

@@ -1,8 +1,5 @@
 #include <string>
 #include <numeric>
-#include <fbxsdk.h>
-#include <iomanip>
-#include <model/MeshObject.h>
 #include <meshstriper/MeshStriper.h>
 #include <meshstriper/Sorter.h>
 #include <util/Timer.hpp>
@@ -39,7 +36,6 @@ void AdjTriangle::createEdges(int v1, int v2, int v3)
 	}
 }
 
-
 int AdjTriangle::getEdgeIndex(uint16_t v1, uint16_t v2)
 {
 	Edge* e0 = &edges[0];
@@ -50,7 +46,6 @@ int AdjTriangle::getEdgeIndex(uint16_t v1, uint16_t v2)
 	if (v1 == e2->v1 && v2 == e2->v2) return 2;
 	return -1;
 }
-
 
 int AdjTriangle::getOppositeVertex(uint16_t v1, uint16_t v2)
 {
@@ -69,8 +64,7 @@ int AdjTriangle::getOppositeVertex(uint16_t v1, uint16_t v2)
 	return -1;
 }
 
-
-void MeshStriper::createAdjacencies(std::vector<AdjTriangle>& adjacencies, int* vertices)
+void MeshStriper::createTriangleStructures(std::vector<AdjTriangle>& adjacencies, int* vertices)
 {
 #if _DEBUG
 	auto start = Timer::begin();
@@ -90,7 +84,6 @@ void MeshStriper::createAdjacencies(std::vector<AdjTriangle>& adjacencies, int* 
 #endif
 }
 
-
 void MeshStriper::updateLink(AdjTriangle* triangles, int firstTri, int secondTri, uint16_t vertex0, uint16_t vertex1)
 {
 	AdjTriangle* tri0 = &triangles[firstTri];
@@ -101,8 +94,7 @@ void MeshStriper::updateLink(AdjTriangle* triangles, int firstTri, int secondTri
 	tri1->adjacentTris[tri1EdgeIndex] = firstTri;
 }
 
-
-void MeshStriper::linkAdjacencies(std::vector<AdjTriangle>& adjacencies)
+void MeshStriper::linkTriangleStructures(std::vector<AdjTriangle>& adjacencies)
 {
 #if _DEBUG
 	auto start = Timer::begin();
@@ -173,26 +165,25 @@ void MeshStriper::linkAdjacencies(std::vector<AdjTriangle>& adjacencies)
 #endif
 }
 
-
-void MeshStriper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numAdjacencies, std::vector<std::vector<uint16_t>>& strips)
+void MeshStriper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numTriangles, std::vector<std::vector<uint16_t>>& strips)
 {
 	auto start = Timer::begin();
-	std::vector<int> indices(numAdjacencies);
+	std::vector<int> indices(numTriangles);
 	std::iota(indices.begin(), indices.end(), 0);
-	int numTriangles = numAdjacencies;
+	int remainingTriangles = numTriangles;
 	AdjTriangle* triangles = adjacencies.data();
 	int* indicesPtr = indices.data();
-	ProgressBar progressBar(numAdjacencies);
+	ProgressBar progressBar(numTriangles);
 	progressBar.start();
 
 	int lastTriangleIndex = 0;
-	while (numTriangles > 0) {
+	while (remainingTriangles > 0) {
 		strips.emplace_back();
 		std::vector<uint16_t>* strip = &strips.back();
 		strip->resize(3);
 		uint16_t* stripData = strip->data();
 		int nextTriangleIndex = -1;
-		for (int i = lastTriangleIndex; i < numAdjacencies; i++) {
+		for (int i = lastTriangleIndex; i < numTriangles; i++) {
 			if (indicesPtr[i] != -1) {
 				nextTriangleIndex = i;
 				lastTriangleIndex = i + 1;
@@ -203,7 +194,7 @@ void MeshStriper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numA
 		AdjTriangle* currentFrontTri = firstTri;
 		AdjTriangle* currentBackTri = firstTri;
 		indicesPtr[nextTriangleIndex] = -1;
-		numTriangles--;
+		remainingTriangles--;
 		memcpy(stripData, firstTri->vertices, 3 * sizeof(uint16_t)); // move current triangle vertices into start of strip
 		uint16_t firstVertex = stripData[0];
 		uint16_t secondVertex = stripData[1];
@@ -215,7 +206,7 @@ void MeshStriper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numA
 			int adjacentTriIndex = currentFrontTri->adjacentTris[frontEdgeIndex];
 			if (indicesPtr[adjacentTriIndex] != -1) {
 				indicesPtr[adjacentTriIndex] = -1;
-				numTriangles--;
+				remainingTriangles--;
 				AdjTriangle* adjacentTri = &triangles[adjacentTriIndex];
 				currentFrontTri = adjacentTri;
 				int newVertex = adjacentTri->getOppositeVertex(secondVertex, thirdVertex);
@@ -233,7 +224,7 @@ void MeshStriper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numA
 				int adjacentTriIndex = currentBackTri->adjacentTris[backEdgeIndex];
 				if (indicesPtr[adjacentTriIndex] == -1) break;
 				indicesPtr[adjacentTriIndex] = -1;
-				numTriangles--;
+				remainingTriangles--;
 				AdjTriangle* adjacentTri = &triangles[adjacentTriIndex];
 				currentBackTri = adjacentTri;
 				int newVertex = adjacentTri->getOppositeVertex(firstVertex, secondVertex);
@@ -243,11 +234,10 @@ void MeshStriper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numA
 				firstVertex = newVertex;
 			}
 		}
-		progressBar.updateProgress(numAdjacencies - numTriangles);
+		progressBar.updateProgress(numTriangles - remainingTriangles);
 	}
 	Timer::end(start, "Found (" + std::to_string(strips.size()) + ") triangle strips: ");
 }
-
 
 void MeshStriper::striper(FbxMesh* inMesh, MeshObject* outMesh)
 {
@@ -261,13 +251,13 @@ void MeshStriper::striper(FbxMesh* inMesh, MeshObject* outMesh)
 
 	int* vertices = inMesh->GetPolygonVertices();
 	std::vector<AdjTriangle> adjacencies(triangleCount);
-	createAdjacencies(adjacencies, vertices);
-	linkAdjacencies(adjacencies);
+	createTriangleStructures(adjacencies, vertices);
+	linkTriangleStructures(adjacencies);
 	generateStrips(adjacencies, triangleCount, outMesh->triangleStrips);
 
 #if _DEBUG
 	int memoryUsage = 0;
 	memoryUsage += triangleCount * 36;
-	std::cout << "Memory usage: " << memoryUsage << " bytes\n";
+	std::cout << "Striper memory usage: " << memoryUsage << " bytes\n";
 #endif
 }

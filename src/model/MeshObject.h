@@ -26,10 +26,6 @@ public:
         Vertex() {}
         Vertex(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
 
-        void prntString() {
-            std::cout << "(" << x << "," << y << "," << z << ")" << std::endl;
-        }
-
         void setPos(float _x, float _y, float _z) {
             x = _x;
             y = _y;
@@ -61,10 +57,9 @@ public:
     };
 
     std::vector<Vertex> vertices;
-    std::vector<uint16_t> vertexIndices;
-    std::vector<uint32_t> edges;
     std::vector<std::vector<uint16_t>> triangleStrips;
     std::vector<float> uvs;
+    std::vector<float> uvIndexes;
 };
 
 #endif

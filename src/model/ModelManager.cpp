@@ -1,11 +1,5 @@
 #include <iostream>
-#include <string>
-#include <vector>
-#include <fstream>
-#include <fbxsdk.h>
 #include <model/ModelManager.h>
-#include <model/MeshObject.h>
-#include <model/FBXReader.h>
 #include <util/Timer.hpp>
 
 void ModelManager::compare(MeshObject* meshA, MeshObject* meshB) {
@@ -141,9 +135,9 @@ void ModelManager::readUVs(std::ifstream& file, MeshObject* mesh)
 #if _DEBUG
     auto start = Timer::begin();
 #endif
-    char metadataBuffer[2];
+    char metadataBuffer[4];
     file.read(metadataBuffer, sizeof(metadataBuffer));
-    uint16_t numUVs = *reinterpret_cast<uint16_t*>(&metadataBuffer);
+    int numUVs = *reinterpret_cast<int*>(&metadataBuffer);
     int numBytes = 2 * numUVs;
     std::vector<char> buffer(numBytes);
     file.read(buffer.data(), numBytes);
@@ -249,7 +243,7 @@ void ModelManager::writeUVs(MeshObject* mesh, std::ofstream& file)
     float* uvs = mesh->uvs.data();
     std::vector<uint16_t> writableUvs(numUVs);
     uint16_t* writableUvsPtr = writableUvs.data();
-    file.write(reinterpret_cast<const char*>(&numUVs), 2);
+    file.write(reinterpret_cast<const char*>(&numUVs), 4);
     for (int i = 0; i < numUVs; ++i) {
         writableUvsPtr[i] = static_cast<uint16_t>(uvs[i] * 10000);
     }

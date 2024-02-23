@@ -14,29 +14,30 @@ public:
 	/// If the file contains bigger numbers, or decimals vertices, you can kiss those numbers goodbye.
 	/// Reason is, each vertex position is stored as 2 bytes in a .m file, which reduces file size, so signed ints work best, as long as they are within 2 bytes.
 	/// </summary>
-	/// <param name="path"></param>
+	/// <param name="path">- souce filepath to read from</param>
+	/// <param name="outMesh">- destination mesh to write to</param>
 	/// <returns>Read success</returns>
 	static bool readFBXModel(const char* path, MeshObject* outMesh);
 private:
 	/// <summary>
 	/// Loop through vertices and stick 'em into the vertex vector
 	/// </summary>
-	/// <param name="mesh"></param>
-	/// <param name="outVertices"></param>
+	/// <param name="mesh">- source mesh to read from</param>
+	/// <param name="outMesh">- destination mesh to write to</param>
 	static void readFBXVertices(FbxMesh* mesh, MeshObject* outMesh);
 
 	/// <summary>
 	/// Loop through the polygons and generate triangle strips, uv strips and a normal list
 	/// </summary>
-	/// <param name="mesh"></param>
-	/// <param name="outTriangles"></param>
+	/// <param name="mesh">- source mesh to read from</param>
+	/// <param name="outMesh">- destination mesh to write to</param>
 	static void readFBXTriangles(FbxMesh* mesh, MeshObject* outMesh);
 
 	/// <summary>
 	/// Read uv coords for each triangle.
 	/// </summary>
-	/// <param name="mesh"></param>
-	/// <param name="outMesh"></param>
+	/// <param name="mesh">- source mesh to read from</param>
+	/// <param name="outMesh">- destination mesh to write to</param>
 	static void readFBXUVs(FbxMesh* mesh, MeshObject* outMesh);
 };
 

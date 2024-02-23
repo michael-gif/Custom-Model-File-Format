@@ -1,14 +1,18 @@
 #include <iostream>
 #include <numeric>
-#include <vector>
 #include <meshstriper/Sorter.h>
 #include <util/Timer.hpp>
-#include <map>
 
-void Sorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& outputIndices)
+void Sorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& outputIndices, int* memoryUsage)
 {
 	uint16_t maxValue = *std::max_element(inputArray.begin(), inputArray.end());
 	int numElements = (int)inputArray.size();
+
+	if (memoryUsage != nullptr) {
+		*memoryUsage = (maxValue + 1) * sizeof(int);
+		*memoryUsage += numElements * sizeof(int);
+	}
+
 	std::vector<int> counts(maxValue + 1);
 	uint16_t* inputPtr = inputArray.data();
 	int* countsPtr = counts.data();
@@ -35,10 +39,16 @@ void Sorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& outpu
 	}
 }
 
-void Sorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& outputIndices)
+void Sorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& outputIndices, int* memoryUsage)
 {
 	uint16_t maxValue = *std::max_element(inputArray.begin(), inputArray.end());
 	int numElements = (int)inputArray.size();
+
+	if (memoryUsage != nullptr) {
+		*memoryUsage = (maxValue + 1) * sizeof(int);
+		*memoryUsage += numElements * sizeof(int);
+	}
+
 	std::vector<int> counts(maxValue + 1);
 	uint16_t* inputPtr = inputArray.data();
 	int* countsPtr = counts.data();
@@ -63,7 +73,7 @@ void Sorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& input
 	}
 }
 
-void Sorter::sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>& outputIndices)
+void Sorter::sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>& outputIndices, int* memoryUsage)
 {
 	uint16_t maxValue = *std::max_element(inputArray.begin(), inputArray.end());
 	int digit = 0;
@@ -73,6 +83,13 @@ void Sorter::sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>& outp
 	}
 	int numElements = (int)inputArray.size();
 	std::vector<int> inputIndices(numElements);
+
+	if (memoryUsage != nullptr) {
+		*memoryUsage = numElements * sizeof(int); // inputIndices
+		*memoryUsage += numElements * sizeof(uint8_t); // singleDigits
+		*memoryUsage += 40; // countArray
+	}
+
 	std::iota(inputIndices.begin(), inputIndices.end(), 0);
 	for (int i = 0; i < digit; i++) {
 		countSort(inputArray, inputIndices, outputIndices, i + 1);
@@ -82,7 +99,7 @@ void Sorter::sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>& outp
 	}
 }
 
-void Sorter::sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& outputIndices)
+void Sorter::sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>& inputIndices, std::vector<int>& outputIndices, int* memoryUsage)
 {
 	uint16_t maxValue = *std::max_element(inputArray.begin(), inputArray.end());
 	int digit = 0;
@@ -91,6 +108,12 @@ void Sorter::sortRadix(std::vector<uint16_t>& inputArray, std::vector<int>& inpu
 		++digit;
 	}
 	int numElements = (int)inputArray.size();
+
+	if (memoryUsage != nullptr) {
+		*memoryUsage += numElements * sizeof(uint8_t); // singleDigits
+		*memoryUsage += 40; // countArray
+	}
+
 	for (int i = 0; i < digit; i++) {
 		countSort(inputArray, inputIndices, outputIndices, i + 1);
 		if (i == digit - 1) break;

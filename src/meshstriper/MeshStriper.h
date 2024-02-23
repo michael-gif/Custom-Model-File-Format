@@ -11,7 +11,7 @@ struct Edge {
 
 struct AdjTriangle {
 	Edge edges[3];
-	int adjacentTris[3] = {-1, -1, -1};
+	int adjacentTris[3] = { -1, -1, -1 };
 	uint16_t vertices[3];
 
 	/// <summary>

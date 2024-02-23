@@ -120,7 +120,7 @@ void MeshStriper::linkTriangleStructures(std::vector<AdjTriangle>& adjacencies)
 		secondVertices[edgeIndex + 1] = edges[1].v2;
 		secondVertices[edgeIndex + 2] = edges[2].v2;
 	}
-	
+
 	//Sort the edges by first vertex then second vertex, ensuring that adjacent edges are next to each other
 	Sorter sorter;
 	std::vector<int> firstSortedIndices(edgeCount);
@@ -142,7 +142,8 @@ void MeshStriper::linkTriangleStructures(std::vector<AdjTriangle>& adjacencies)
 			tmpBuffer[count] = faceIndex;
 			count++;
 			if (count == 3) return;
-		} else {
+		}
+		else {
 			if (count == 2) updateLink(adjacencyPtr, tmpBuffer[0], tmpBuffer[1], lastVertex0, lastVertex1);
 			// Reset for next edge
 			tmpBuffer[0] = faceIndex;

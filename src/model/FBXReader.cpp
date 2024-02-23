@@ -1,10 +1,6 @@
 #include <iostream>
 #include <string>
-#include <chrono>
-#include <numeric>
-#include <fbxsdk.h>
 #include <model/FBXReader.h>
-#include <model/MeshObject.h>
 #include <meshstriper/MeshStriper.h>
 #include <util/Timer.hpp>
 
@@ -41,7 +37,6 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
 	if (!importer->Initialize(path, -1, manager->GetIOSettings())) {
 		std::cout << "Could not initialize fbx file" << std::endl;
 		importer->Destroy();
-		ioSettings->Destroy();
 		manager->Destroy();
 		return false;
 	}
@@ -68,7 +63,6 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
 	if (!mesh) {
 		std::cout << "'" << node->GetName() << "' does not contain a mesh\n";
 		scene->Destroy();
-		ioSettings->Destroy();
 		manager->Destroy();
 		return false;
 	}
@@ -81,7 +75,6 @@ bool FBXReader::readFBXModel(const char* path, MeshObject* outMesh)
 	readFBXUVs(mesh, outMesh);
 
 	scene->Destroy();
-	ioSettings->Destroy();
 	manager->Destroy();
 
 	std::flush(std::cout);
@@ -95,15 +88,17 @@ void FBXReader::readFBXVertices(FbxMesh* mesh, MeshObject* outMesh)
 	auto start = Timer::begin();
 #endif
 
-	FbxVector4* vertices = mesh->GetControlPoints();
 	int vertexCount = mesh->GetControlPointsCount();
 	std::cout << "[FBX] Detected mesh: '" << mesh->GetName() << "' with vertex count (" << vertexCount << ")" << std::endl;
+	FbxVector4* fbxVertices = mesh->GetControlPoints();
+	outMesh->vertices.resize(vertexCount);
+	MeshObject::Vertex* meshVertices = outMesh->vertices.data();
 	for (int j = 0; j < vertexCount; ++j) {
-		outMesh->vertices.emplace_back(vertices[j][0], vertices[j][1], vertices[j][2]);
+		meshVertices[j].setPos((float)fbxVertices[j][0], (float)fbxVertices[j][1], (float)fbxVertices[j][2]);
 	}
 
 #if _DEBUG
-	Timer::end(start, "Read (" + std::to_string(vertexCount) + ") vertices: ");
+	Timer::end(start, "Found (" + std::to_string(vertexCount) + ") vertices: ");
 #endif
 }
 
@@ -120,28 +115,30 @@ void FBXReader::readFBXUVs(FbxMesh* mesh, MeshObject* outMesh)
 	auto start = Timer::begin();
 #endif
 
-	FbxStringList uvSetNames;
-	mesh->GetUVSetNames(uvSetNames);
-	FbxString uvMapName = uvSetNames[0];
-	FbxVector2 uvCoord;
-	bool unmapped;
-	outMesh->uvs.resize(mesh->GetPolygonCount() * 6);
+	// uv coords
+	FbxLayerElementArrayTemplate<FbxVector2>* uvArray = &mesh->GetElementUV()->GetDirectArray();
+	outMesh->uvs.resize((size_t)uvArray->GetCount() * 2);
 	float* uvs = outMesh->uvs.data();
+	for (int i = 0; i < uvArray->GetCount(); i++) {
+		int uvIndex = i * 2;
+		uvs[uvIndex] = uvArray->GetAt(i).mData[0];
+		uvs[uvIndex + 1] = uvArray->GetAt(i).mData[1];
+	}
 
+	// uv indices
+	outMesh->uvIndexes.resize((size_t)mesh->GetPolygonCount() * 3);
+	int* uvIndices = outMesh->uvIndexes.data();
 	for (int i = 0; i < mesh->GetPolygonCount(); ++i) {
-		int startIndex = i * 6;
-		mesh->GetPolygonVertexUV(i, 0, uvMapName, uvCoord, unmapped);
-		uvs[startIndex + 0] = (float)uvCoord[0];
-		uvs[startIndex + 1] = (float)uvCoord[1];
-		mesh->GetPolygonVertexUV(i, 1, uvMapName, uvCoord, unmapped);
-		uvs[startIndex + 2] = (float)uvCoord[0];
-		uvs[startIndex + 3] = (float)uvCoord[1];
-		mesh->GetPolygonVertexUV(i, 2, uvMapName, uvCoord, unmapped);
-		uvs[startIndex + 4] = (float)uvCoord[0];
-		uvs[startIndex + 5] = (float)uvCoord[1];
+		int startIndex = i * 3;
+		int uv0 = mesh->GetTextureUVIndex(i, 0, FbxLayerElement::eTextureDiffuse);
+		int uv1 = mesh->GetTextureUVIndex(i, 1, FbxLayerElement::eTextureDiffuse);
+		int uv2 = mesh->GetTextureUVIndex(i, 2, FbxLayerElement::eTextureDiffuse);
+		uvIndices[startIndex + 0] = uv0;
+		uvIndices[startIndex + 1] = uv1;
+		uvIndices[startIndex + 2] = uv2;
 	}
 
 #if _DEBUG
-	Timer::end(start, "Read (" + std::to_string(outMesh->uvs.size()) + ") uv's: ");
+	Timer::end(start, "Found (" + std::to_string(outMesh->uvs.size()) + ") uv's: ");
 #endif
 }

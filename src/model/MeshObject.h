@@ -59,7 +59,7 @@ public:
     std::vector<Vertex> vertices;
     std::vector<std::vector<uint16_t>> triangleStrips;
     std::vector<float> uvs;
-    std::vector<float> uvIndexes;
+    std::vector<int> uvIndexes;
 };
 
 #endif

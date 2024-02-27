@@ -32,10 +32,10 @@ public:
 			z = _z;
 		}
 
-		void setNormal(float x, float y, float z) {
-			normal.x = x;
-			normal.y = y;
-			normal.z = z;
+		void setNormal(float _x, float _y, float _z) {
+			normal.x = _x;
+			normal.y = _y;
+			normal.z = _z;
 		}
 	};
 

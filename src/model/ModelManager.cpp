@@ -5,8 +5,8 @@
 void ModelManager::compare(MeshObject* meshA, MeshObject* meshB) {
 	auto start = Timer::begin();
 	//compare vertices
-	int meshAVerts = (int)meshA->vertices.size();
-	int meshBVerts = (int)meshB->vertices.size();
+	int meshAVerts = (int)meshA->vertices.capacity();
+	int meshBVerts = (int)meshB->vertices.capacity();
 	std::cout << "Vertices: " << meshAVerts << "/" << meshBVerts << ", ";
 	int numCorrect = 0;
 	MeshObject::Vertex* verticesa = meshA->vertices.data();
@@ -224,7 +224,7 @@ void ModelManager::writeVertices(MeshObject* mesh, std::ofstream& file)
 #if _DEBUG
 	auto start = Timer::begin();
 #endif
-	int numVertices = (int)mesh->vertices.size();
+	int numVertices = (int)mesh->vertices.capacity();
 	file.write(reinterpret_cast<const char*>(&numVertices), 2);
 	std::vector<float> values(numVertices * 3);
 	float* ptr = values.data();
@@ -240,7 +240,7 @@ void ModelManager::writeVertices(MeshObject* mesh, std::ofstream& file)
 	int numBytes = 2 + (numVertices * 12);
 	mesh->sizeondisk += numBytes;
 #if _DEBUG
-	Timer::end(start, "Wrote (" + std::to_string(mesh->vertices.size()) + ") vertices (" + std::to_string(numBytes) + " bytes): ");
+	Timer::end(start, "Wrote (" + std::to_string(mesh->vertices.capacity()) + ") vertices (" + std::to_string(numBytes) + " bytes): ");
 #endif
 }
 
@@ -286,7 +286,7 @@ void ModelManager::writeUVs(MeshObject* mesh, std::ofstream& file)
 
 	// uv indices
 	int numBytes = 4 + (numUVs * 2);
-	int numUVIndexes = mesh->uvIndexes.size();
+	int numUVIndexes = (int)mesh->uvIndexes.size();
 	int* uvIndices = mesh->uvIndexes.data();
 	if (numUVs <= 65536) {
 		// if the number of uvs is less than 65536, then the indexes can fit into 2 bytes

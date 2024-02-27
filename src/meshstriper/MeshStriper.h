@@ -20,7 +20,7 @@ struct AdjTriangle {
 	/// <param name="v1"> - first vertex</param>
 	/// <param name="v2"> - second vertex</param>
 	/// <param name="v3"> - third vertex</param>
-	void createEdges(int v1, int v2, int v3);
+	void createEdges(uint16_t v1, uint16_t v2, uint16_t v3);
 
 	/// <summary>
 	/// <para/>Return the index of the edge formed by the given vertices.

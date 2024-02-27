@@ -5,7 +5,7 @@
 #include <util/Timer.hpp>
 #include <util/ProgressBar.hpp>
 
-void AdjTriangle::createEdges(int v1, int v2, int v3)
+void AdjTriangle::createEdges(uint16_t v1, uint16_t v2, uint16_t v3)
 {
 	vertices[0] = v1;
 	vertices[1] = v2;
@@ -76,7 +76,7 @@ void MeshStriper::createTriangleStructures(std::vector<AdjTriangle>& adjacencies
 		int v1 = vertices[vertexIndex];
 		int v2 = vertices[vertexIndex + 1];
 		int v3 = vertices[vertexIndex + 2];
-		adjacencyPtr[i].createEdges(v1, v2, v3);
+		adjacencyPtr[i].createEdges((uint16_t)v1, (uint16_t)v2, (uint16_t)v3);
 	}
 
 #if _DEBUG
@@ -211,9 +211,9 @@ void MeshStriper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numT
 				AdjTriangle* adjacentTri = &triangles[adjacentTriIndex];
 				currentFrontTri = adjacentTri;
 				int newVertex = adjacentTri->getOppositeVertex(secondVertex, thirdVertex);
-				strip->emplace_back(newVertex);
+				strip->emplace_back((uint16_t)newVertex);
 				secondVertex = thirdVertex;
-				thirdVertex = newVertex;
+				thirdVertex = (uint16_t)newVertex;
 				continue;
 			}
 			else {
@@ -222,17 +222,17 @@ void MeshStriper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numT
 				int backEdgeIndex;
 				if (firstVertex < secondVertex) backEdgeIndex = currentBackTri->getEdgeIndex(firstVertex, secondVertex);
 				else backEdgeIndex = currentBackTri->getEdgeIndex(secondVertex, firstVertex);
-				int adjacentTriIndex = currentBackTri->adjacentTris[backEdgeIndex];
+				adjacentTriIndex = currentBackTri->adjacentTris[backEdgeIndex];
 				if (indicesPtr[adjacentTriIndex] == -1) break;
 				indicesPtr[adjacentTriIndex] = -1;
 				remainingTriangles--;
 				AdjTriangle* adjacentTri = &triangles[adjacentTriIndex];
 				currentBackTri = adjacentTri;
 				int newVertex = adjacentTri->getOppositeVertex(firstVertex, secondVertex);
-				strip->insert(strip->begin(), newVertex);
+				strip->insert(strip->begin(), (uint16_t)newVertex);
 				stripData = strip->data();
 				secondVertex = stripData[strip->size() - 2];
-				firstVertex = newVertex;
+				firstVertex = (uint16_t)newVertex;
 			}
 		}
 		progressBar.updateProgress(numTriangles - remainingTriangles);

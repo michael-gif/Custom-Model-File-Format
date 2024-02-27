@@ -91,10 +91,11 @@ void FBXReader::readFBXVertices(FbxMesh* mesh, MeshObject* outMesh)
 	int vertexCount = mesh->GetControlPointsCount();
 	std::cout << "[FBX] Detected mesh: '" << mesh->GetName() << "' with vertex count (" << vertexCount << ")" << std::endl;
 	FbxVector4* fbxVertices = mesh->GetControlPoints();
-	outMesh->vertices.resize(vertexCount);
+	outMesh->vertices.reserve(vertexCount);
 	MeshObject::Vertex* meshVertices = outMesh->vertices.data();
 	for (int j = 0; j < vertexCount; ++j) {
-		meshVertices[j].setPos((float)fbxVertices[j][0], (float)fbxVertices[j][1], (float)fbxVertices[j][2]);
+		FbxDouble* vertex = fbxVertices[j].mData;
+		meshVertices[j].setPos((float)vertex[0], (float)vertex[1], (float)vertex[2]);
 	}
 
 #if _DEBUG
@@ -121,8 +122,9 @@ void FBXReader::readFBXUVs(FbxMesh* mesh, MeshObject* outMesh)
 	float* uvs = outMesh->uvs.data();
 	for (int i = 0; i < uvArray->GetCount(); i++) {
 		int uvIndex = i * 2;
-		uvs[uvIndex] = uvArray->GetAt(i).mData[0];
-		uvs[uvIndex + 1] = uvArray->GetAt(i).mData[1];
+		FbxDouble* uvcoord = uvArray->GetAt(i).mData;
+		uvs[uvIndex] = (float)uvcoord[0];
+		uvs[uvIndex + 1] = (float)uvcoord[1];
 	}
 
 	// uv indices
@@ -137,7 +139,7 @@ void FBXReader::readFBXUVs(FbxMesh* mesh, MeshObject* outMesh)
 		uvIndices[startIndex + 1] = uv1;
 		uvIndices[startIndex + 2] = uv2;
 	}
-
+	
 #if _DEBUG
 	Timer::end(start, "Found (" + std::to_string(outMesh->uvs.size()) + ") uv's: ");
 #endif

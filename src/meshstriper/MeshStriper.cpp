@@ -1,38 +1,50 @@
 #include <string>
 #include <numeric>
+#include <algorithm>
+#include <immintrin.h>
 #include <meshstriper/MeshStriper.h>
 #include <meshstriper/Sorter.h>
 #include <util/Timer.hpp>
 #include <util/ProgressBar.hpp>
 
-void AdjTriangle::createEdges(uint16_t v1, uint16_t v2, uint16_t v3)
+void AdjTriangle::createEdges(int* vertices, int vertexIndex)
 {
-	vertices[0] = v1;
-	vertices[1] = v2;
-	vertices[2] = v3;
+	int v1 = vertices[vertexIndex];
+	int v2 = vertices[vertexIndex + 1];
+	int v3 = vertices[vertexIndex + 2];
+	this->vertices[0] = v1;
+	this->vertices[1] = v2;
+	this->vertices[2] = v3;
+
 	if (v1 < v2) {
 		edges[0].v1 = v1;
 		edges[0].v2 = v2;
+		edges[0].edge = (v1 << 16) | v2;
 	}
 	else {
 		edges[0].v1 = v2;
 		edges[0].v2 = v1;
+		edges[0].edge = (v2 << 16) | v1;
 	}
 	if (v2 < v3) {
 		edges[1].v1 = v2;
 		edges[1].v2 = v3;
+		edges[1].edge = (v2 << 16) | v3;
 	}
 	else {
 		edges[1].v1 = v3;
 		edges[1].v2 = v2;
+		edges[1].edge = (v3 << 16) | v2;
 	}
 	if (v3 < v1) {
 		edges[2].v1 = v3;
 		edges[2].v2 = v1;
+		edges[2].edge = (v3 << 16) | v1;
 	}
 	else {
 		edges[2].v1 = v1;
 		edges[2].v2 = v3;
+		edges[2].edge = (v1 << 16) | v3;
 	}
 }
 
@@ -42,12 +54,17 @@ int AdjTriangle::getEdgeIndex(uint16_t v1, uint16_t v2)
 	if (v1 == e0->v1 && v2 == e0->v2) return 0;
 	Edge* e1 = &edges[1];
 	if (v1 == e1->v1 && v2 == e1->v2) return 1;
-	Edge* e2 = &edges[2];
-	if (v1 == e2->v1 && v2 == e2->v2) return 2;
-	return -1;
+	return 2;
 }
 
-int AdjTriangle::getOppositeVertex(uint16_t v1, uint16_t v2)
+int AdjTriangle::getEdgeIndex(uint32_t edge)
+{
+	if (edges[0].edge == edge) return 0;
+	if (edges[1].edge == edge) return 1;
+	return 2;
+}
+
+uint16_t AdjTriangle::getOppositeVertex(uint16_t v1, uint16_t v2)
 {
 	if (v1 == vertices[0]) {
 		if (v2 == vertices[1]) return vertices[2];
@@ -57,11 +74,10 @@ int AdjTriangle::getOppositeVertex(uint16_t v1, uint16_t v2)
 		if (v2 == vertices[2]) return vertices[0];
 		if (v2 == vertices[0]) return vertices[2];
 	}
-	else if (v1 == vertices[2]) {
+	else {
 		if (v2 == vertices[0]) return vertices[1];
-		if (v2 == vertices[1]) return vertices[0];
+		return vertices[0];
 	}
-	return -1;
 }
 
 void MeshStriper::createTriangleStructures(std::vector<AdjTriangle>& adjacencies, int* vertices)
@@ -71,12 +87,16 @@ void MeshStriper::createTriangleStructures(std::vector<AdjTriangle>& adjacencies
 #endif
 
 	AdjTriangle* adjacencyPtr = adjacencies.data();
-	for (int i = 0; i < adjacencies.size(); i++) {
-		int vertexIndex = i * 3;
-		int v1 = vertices[vertexIndex];
-		int v2 = vertices[vertexIndex + 1];
-		int v3 = vertices[vertexIndex + 2];
-		adjacencyPtr[i].createEdges((uint16_t)v1, (uint16_t)v2, (uint16_t)v3);
+	int numAdjacencies = adjacencies.size();
+	int remaining = numAdjacencies % 4;
+	for (int i = 0; i < numAdjacencies; i += 4) {
+		adjacencyPtr[i].createEdges(vertices, i * 3);
+		adjacencyPtr[i+1].createEdges(vertices, (i+1) * 3);
+		adjacencyPtr[i+2].createEdges(vertices, (i+2) * 3);
+		adjacencyPtr[i+3].createEdges(vertices, (i+3) * 3);
+	}
+	for (int i = numAdjacencies - remaining; i < numAdjacencies; i++) {
+		adjacencyPtr[i].createEdges(vertices, i * 3);
 	}
 
 #if _DEBUG
@@ -94,6 +114,16 @@ void MeshStriper::updateLink(AdjTriangle* triangles, int firstTri, int secondTri
 	tri1->adjacentTris[tri1EdgeIndex] = firstTri;
 }
 
+void MeshStriper::updateLink(AdjTriangle* triangles, int firstTri, int secondTri, uint32_t edge)
+{
+	AdjTriangle* tri0 = &triangles[firstTri];
+	AdjTriangle* tri1 = &triangles[secondTri];
+	int tri0EdgeIndex = tri0->getEdgeIndex(edge);
+	int tri1EdgeIndex = tri1->getEdgeIndex(edge);
+	tri0->adjacentTris[tri0EdgeIndex] = secondTri;
+	tri1->adjacentTris[tri1EdgeIndex] = firstTri;
+}
+
 void MeshStriper::linkTriangleStructures(std::vector<AdjTriangle>& adjacencies)
 {
 #if _DEBUG
@@ -104,21 +134,25 @@ void MeshStriper::linkTriangleStructures(std::vector<AdjTriangle>& adjacencies)
 	std::vector<int> faceIndices(edgeCount); // every edge has an associated face
 	std::vector<uint16_t> firstVertices(edgeCount);
 	std::vector<uint16_t> secondVertices(edgeCount);
+
 	AdjTriangle* adjacencyPtr = adjacencies.data();
+	int* faceIndicesPtr = faceIndices.data();
+	uint16_t* firstVerticesPtr = firstVertices.data();
+	uint16_t* secondVerticesPtr = secondVertices.data();
 
 	for (int i = 0; i < adjacencies.size(); i++) {
 		int edgeIndex = i * 3;
-		faceIndices[edgeIndex] = i;
-		faceIndices[edgeIndex + 1] = i;
-		faceIndices[edgeIndex + 2] = i;
+		faceIndicesPtr[edgeIndex] = i;
+		faceIndicesPtr[edgeIndex + 1] = i;
+		faceIndicesPtr[edgeIndex + 2] = i;
 		AdjTriangle* triangle = &adjacencyPtr[i];
 		Edge* edges = triangle->edges;
-		firstVertices[edgeIndex] = edges[0].v1;
-		firstVertices[edgeIndex + 1] = edges[1].v1;
-		firstVertices[edgeIndex + 2] = edges[2].v1;
-		secondVertices[edgeIndex] = edges[0].v2;
-		secondVertices[edgeIndex + 1] = edges[1].v2;
-		secondVertices[edgeIndex + 2] = edges[2].v2;
+		firstVerticesPtr[edgeIndex] = edges[0].v1;
+		firstVerticesPtr[edgeIndex + 1] = edges[1].v1;
+		firstVerticesPtr[edgeIndex + 2] = edges[2].v1;
+		secondVerticesPtr[edgeIndex] = edges[0].v2;
+		secondVerticesPtr[edgeIndex + 1] = edges[1].v2;
+		secondVerticesPtr[edgeIndex + 2] = edges[2].v2;
 	}
 
 	//Sort the edges by first vertex then second vertex, ensuring that adjacent edges are next to each other
@@ -129,30 +163,34 @@ void MeshStriper::linkTriangleStructures(std::vector<AdjTriangle>& adjacencies)
 	sorter.sortFast(secondVertices, firstSortedIndices, secondSortedIndices);
 
 	// Read the list in sorted order, creating links between adjacent triangles
-	uint16_t lastVertex0 = firstVertices[secondSortedIndices[0]];
-	uint16_t lastVertex1 = secondVertices[secondSortedIndices[0]];
+	int* sortedIndicesPtr = secondSortedIndices.data();
+	int sortedIndex = sortedIndicesPtr[0];
+	uint16_t lastVertex0 = firstVerticesPtr[sortedIndex];
+	uint16_t lastVertex1 = secondVerticesPtr[sortedIndex];
+	uint32_t combinedLastVertex = (lastVertex0 << 16) | lastVertex1;
 	char count = 0;
-	int tmpBuffer[3];
+	int faces[2];
 
 	for (int i = 0; i < edgeCount; i++) {
-		int faceIndex = faceIndices[secondSortedIndices[i]];
-		uint16_t vertex0 = firstVertices[secondSortedIndices[i]];
-		uint16_t vertex1 = secondVertices[secondSortedIndices[i]];
-		if (vertex0 == lastVertex0 && vertex1 == lastVertex1) {
-			tmpBuffer[count] = faceIndex;
+		sortedIndex = sortedIndicesPtr[i];
+		int faceIndex = faceIndicesPtr[sortedIndex];
+		uint16_t vertex0 = firstVerticesPtr[sortedIndex];
+		uint16_t vertex1 = secondVerticesPtr[sortedIndex];
+		uint32_t combinedCurrentVertex = (vertex0 << 16) | vertex1;
+		// vertex0 == lastVertex0 && vertex1 == lastVertex1
+		if (combinedCurrentVertex == combinedLastVertex) {
+			faces[count] = faceIndex;
 			count++;
-			if (count == 3) return;
 		}
 		else {
-			if (count == 2) updateLink(adjacencyPtr, tmpBuffer[0], tmpBuffer[1], lastVertex0, lastVertex1);
+			if (count == 2) updateLink(adjacencyPtr, faces[0], faces[1], combinedLastVertex);
 			// Reset for next edge
-			tmpBuffer[0] = faceIndex;
+			faces[0] = faceIndex;
 			count = 1;
-			lastVertex0 = vertex0;
-			lastVertex1 = vertex1;
+			combinedLastVertex = combinedCurrentVertex;
 		}
 	}
-	if (count == 2) updateLink(adjacencyPtr, tmpBuffer[0], tmpBuffer[1], lastVertex0, lastVertex1);
+	if (count == 2) updateLink(adjacencyPtr, faces[0], faces[1], combinedLastVertex);
 
 #if _DEBUG
 	int memoryUsage = 0;
@@ -200,6 +238,7 @@ void MeshStriper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numT
 		uint16_t firstVertex = stripData[0];
 		uint16_t secondVertex = stripData[1];
 		uint16_t thirdVertex = stripData[2];
+		uint16_t secondVertexOld = secondVertex;
 		while (true) {
 			int frontEdgeIndex;
 			if (secondVertex < thirdVertex) frontEdgeIndex = currentFrontTri->getEdgeIndex(secondVertex, thirdVertex);
@@ -210,10 +249,11 @@ void MeshStriper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numT
 				remainingTriangles--;
 				AdjTriangle* adjacentTri = &triangles[adjacentTriIndex];
 				currentFrontTri = adjacentTri;
-				int newVertex = adjacentTri->getOppositeVertex(secondVertex, thirdVertex);
-				strip->emplace_back((uint16_t)newVertex);
+				uint16_t newVertex = adjacentTri->getOppositeVertex(secondVertex, thirdVertex);
+				strip->emplace_back(newVertex);
 				secondVertex = thirdVertex;
-				thirdVertex = (uint16_t)newVertex;
+				secondVertexOld = secondVertex;
+				thirdVertex = newVertex;
 				continue;
 			}
 			else {
@@ -228,11 +268,11 @@ void MeshStriper::generateStrips(std::vector<AdjTriangle>& adjacencies, int numT
 				remainingTriangles--;
 				AdjTriangle* adjacentTri = &triangles[adjacentTriIndex];
 				currentBackTri = adjacentTri;
-				int newVertex = adjacentTri->getOppositeVertex(firstVertex, secondVertex);
-				strip->insert(strip->begin(), (uint16_t)newVertex);
+				uint16_t newVertex = adjacentTri->getOppositeVertex(firstVertex, secondVertex);
+				strip->insert(strip->begin(), newVertex);
 				stripData = strip->data();
 				secondVertex = stripData[strip->size() - 2];
-				firstVertex = (uint16_t)newVertex;
+				firstVertex = newVertex;
 			}
 		}
 		progressBar.updateProgress(numTriangles - remainingTriangles);

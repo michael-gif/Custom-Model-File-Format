@@ -3,10 +3,12 @@
 
 #include <fbxsdk.h>
 #include <model/MeshObject.h>
+#include <unordered_map>
 
 struct Edge {
 	uint16_t v1;
 	uint16_t v2;
+	uint32_t edge; // (v1 << 16) | v2
 };
 
 struct AdjTriangle {
@@ -20,7 +22,7 @@ struct AdjTriangle {
 	/// <param name="v1"> - first vertex</param>
 	/// <param name="v2"> - second vertex</param>
 	/// <param name="v3"> - third vertex</param>
-	void createEdges(uint16_t v1, uint16_t v2, uint16_t v3);
+	void createEdges(int* vertices, int vertexIndex);
 
 	/// <summary>
 	/// <para/>Return the index of the edge formed by the given vertices.
@@ -30,6 +32,7 @@ struct AdjTriangle {
 	/// <param name="v2"> - second vertex</param>
 	/// <returns></returns>
 	int getEdgeIndex(uint16_t v1, uint16_t v2);
+	int getEdgeIndex(uint32_t edge);
 
 	/// <summary>
 	/// Given two vertices, return the third vertex in the triangle.
@@ -37,7 +40,7 @@ struct AdjTriangle {
 	/// <param name="v1"> - first vertex</param>
 	/// <param name="v2"> - second vertex</param>
 	/// <returns></returns>
-	int getOppositeVertex(uint16_t v1, uint16_t v2);
+	uint16_t getOppositeVertex(uint16_t v1, uint16_t v2);
 };
 
 class MeshStriper {
@@ -61,6 +64,7 @@ private:
 	/// <param name="vertex1">- second vertex, used to get the shared edge between firstTri and secondTri</param>
 	/// <returns></returns>
 	void updateLink(AdjTriangle* triangles, int firstTri, int secondTri, uint16_t vertex0, uint16_t vertex1);
+	void updateLink(AdjTriangle* triangles, int firstTri, int secondTri, uint32_t edge);
 
 	/// <summary>
 	/// <para/>Link the adjacency structures by creating a list of all edges in the mesh and sorting by the second vertex of each edge.

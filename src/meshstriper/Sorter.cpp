@@ -33,7 +33,7 @@ void Sorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& outpu
 	int* inputIndicesPtr = inputIndices.data();
 	int* outputPtr = outputIndices.data();
 	for (int i = numElements - 1; i >= 0; i--) {
-		int element = inputPtr[i];
+		uint16_t element = inputPtr[i];
 		outputPtr[countsPtr[element] - 1] = inputIndicesPtr[i];
 		countsPtr[element]--;
 	}
@@ -67,7 +67,7 @@ void Sorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& input
 	// get sorted values
 	int* outputPtr = outputIndices.data();
 	for (int i = numElements - 1; i >= 0; i--) {
-		int element = inputPtr[inputIndicesPtr[i]];
+		uint16_t element = inputPtr[inputIndicesPtr[i]];
 		outputPtr[countsPtr[element] - 1] = inputIndicesPtr[i];
 		countsPtr[element]--;
 	}

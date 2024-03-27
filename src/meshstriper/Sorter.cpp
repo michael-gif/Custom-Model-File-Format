@@ -18,14 +18,12 @@ void Sorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& outpu
 	int* countsPtr = counts.data();
 
 	// create counts
-	for (int i = 0; i < numElements; i++) {
-		countsPtr[inputPtr[i]]++;
+	for (uint16_t value : inputArray) {
+		countsPtr[value]++;
 	}
 
 	// create offsets
-	for (int i = 1; i < counts.size(); i++) {
-		countsPtr[i] += countsPtr[i - 1];
-	}
+	std::partial_sum(counts.begin(), counts.end(), counts.begin());
 
 	// get sorted values
 	std::vector<int> inputIndices(numElements);
@@ -55,20 +53,19 @@ void Sorter::sortFast(std::vector<uint16_t>& inputArray, std::vector<int>& input
 	int* inputIndicesPtr = inputIndices.data();
 
 	// create counts
-	for (int i = 0; i < numElements; i++) {
-		countsPtr[inputPtr[i]]++;
+	for (uint16_t value : inputArray) {
+		countsPtr[value]++;
 	}
 
 	// create offsets
-	for (int i = 1; i < counts.size(); i++) {
-		countsPtr[i] += countsPtr[i - 1];
-	}
+	std::partial_sum(counts.begin(), counts.end(), counts.begin());
 
 	// get sorted values
 	int* outputPtr = outputIndices.data();
 	for (int i = numElements - 1; i >= 0; i--) {
-		uint16_t element = inputPtr[inputIndicesPtr[i]];
-		outputPtr[countsPtr[element] - 1] = inputIndicesPtr[i];
+		int index = inputIndicesPtr[i];
+		uint16_t element = inputPtr[index];
+		outputPtr[countsPtr[element] - 1] = index;
 		countsPtr[element]--;
 	}
 }

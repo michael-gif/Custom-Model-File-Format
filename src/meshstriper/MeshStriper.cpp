@@ -177,7 +177,6 @@ void MeshStriper::linkTriangleStructures(std::vector<AdjTriangle>& adjacencies)
 		uint16_t vertex0 = firstVerticesPtr[sortedIndex];
 		uint16_t vertex1 = secondVerticesPtr[sortedIndex];
 		uint32_t combinedCurrentVertex = (vertex0 << 16) | vertex1;
-		// vertex0 == lastVertex0 && vertex1 == lastVertex1
 		if (combinedCurrentVertex == combinedLastVertex) {
 			faces[count] = faceIndex;
 			count++;
